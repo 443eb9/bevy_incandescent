@@ -1,4 +1,4 @@
-# Bevy Incandescent
+# Bevy Incandescent 💡
 
 A 2d lighting crate for bevy. Currently wip.
 
@@ -6,6 +6,7 @@ A 2d lighting crate for bevy. Currently wip.
 
 - Basic Lighting
 - PBS Lighting
+- Bloom
 - Screen Space SSAO
 - Support `bevy_entitiles`
 - Volumetric Clouds

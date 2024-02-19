@@ -2,7 +2,39 @@
 name = "bevy_incandescent"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/443eb9/bevy_incandescent"
+description = "A 2d lighting crate for bevy."
+exclude = ["assets/"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
 
 [dependencies]
+bevy = { version = "0.13", default-features = false, features = [
+    "bevy_core_pipeline",
+    "bevy_render",
+    "png",
+    "bevy_sprite",
+    "multi-threaded",
+    "x11",
+    "wayland",
+] }
+
+[dev-dependencies]
+bevy = { version = "0.13", features = [
+    "bevy_ui",
+    "default_font",
+    "trace_tracy",
+    "bevy_winit",
+    "bevy_asset",
+    "bevy_gizmos",
+] }
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+features = []

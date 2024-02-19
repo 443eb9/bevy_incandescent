@@ -1,14 +1,13 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use bevy::app::{App, Plugin};
+use render::IncandescentRenderPlugin;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod ecs;
+pub mod render;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+pub struct IncandescentPlugin;
+
+impl Plugin for IncandescentPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(IncandescentRenderPlugin);
     }
 }
