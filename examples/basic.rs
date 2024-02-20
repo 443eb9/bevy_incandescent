@@ -7,7 +7,7 @@ use bevy::{
 use bevy_incandescent::IncandescentPlugin;
 
 fn main() {
-    App::new()
+    App::new();
         .add_plugins((DefaultPlugins, IncandescentPlugin))
         .add_systems(Startup, setup)
         .run();

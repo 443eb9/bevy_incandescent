@@ -33,8 +33,12 @@ bevy = { version = "0.13", features = [
     "bevy_asset",
     "bevy_gizmos",
 ] }
+bevy_mod_debugdump = { path = "../bevy_mod_debugdump" }
 
 [[example]]
 name = "basic"
 path = "examples/basic.rs"
-features = []
+
+[[example]]
+name = "print_graph"
+path = "examples/print_graph.rs"
