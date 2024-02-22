@@ -33,7 +33,8 @@ bevy = { version = "0.13", features = [
     "bevy_asset",
     "bevy_gizmos",
 ] }
-bevy_mod_debugdump = { path = "../bevy_mod_debugdump" }
+bevy_mod_debugdump = "0.10.0"
+rand = "0.8"
 
 [[example]]
 name = "basic"

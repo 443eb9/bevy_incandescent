@@ -1,23 +1,23 @@
-use bevy::{ecs::component::Component, math::UVec2, render::color::Color};
-
-pub trait Light2d {
-    fn get_affected_square(&self) -> UVec2;
-}
+use bevy::{
+    ecs::{component::Component, entity::Entity},
+    render::{color::Color, texture::ColorAttachment},
+};
 
 #[derive(Component)]
 pub struct ShadowCaster2d;
 
 #[derive(Component)]
+pub struct ShadowView2d {
+    pub attachment: ColorAttachment,
+}
+
+#[derive(Component)]
+pub struct ViewLight2dEntities(pub Vec<Entity>);
+
+#[derive(Component, Default, Clone, Copy)]
 pub struct PointLight2d {
     pub color: Color,
     pub intensity: f32,
     pub range: f32,
     pub radius: f32,
-}
-
-impl Light2d for PointLight2d {
-    #[inline]
-    fn get_affected_square(&self) -> UVec2 {
-        UVec2::splat(self.range.ceil() as u32)
-    }
 }
