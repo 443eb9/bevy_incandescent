@@ -23,7 +23,10 @@ use crate::ecs::{
 
 use super::{
     extract::ExtractedPointLight2d,
-    resource::{GpuLights2d, GpuPointLight2d, ShadowMap2dConfig, ShadowView2dUniform},
+    resource::{
+        GpuLights2d, GpuPointLight2d, GpuShadowView2d, ShadowMap2dConfig, ShadowMap2dMeta,
+        ShadowMap2dStorage,
+    },
 };
 
 pub fn prepare_lights(
@@ -32,6 +35,7 @@ pub fn prepare_lights(
     main_views: Query<Entity, With<ViewTarget>>,
     mut point_lights: Query<(Entity, &ExtractedPointLight2d, &GlobalTransform)>,
     shadow_map_config: Res<ShadowMap2dConfig>,
+    mut shadow_map_storage: ResMut<ShadowMap2dStorage>,
     mut gpu_lights: ResMut<GpuLights2d>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
@@ -42,7 +46,7 @@ pub fn prepare_lights(
 
     for (light_entity, light, transform) in point_lights.iter_mut() {
         let uniform_indices = gpu_lights.add_point_light(
-            ShadowView2dUniform::new(transform, &shadow_map_config),
+            GpuShadowView2d::new(transform, &shadow_map_config),
             GpuPointLight2d::new(transform, light),
         );
 
@@ -77,6 +81,7 @@ pub fn prepare_lights(
     }
 
     if let Some(shadow_camera) = main_views.iter().next() {
+        // TODO add visible lights to all cameras
         commands.entity(shadow_camera).insert((
             VisibleLight2dEntities(point_lights.iter().map(|(e, ..)| e).collect::<Vec<_>>()),
             ShadowCameraDriver,
@@ -84,4 +89,12 @@ pub fn prepare_lights(
     }
 
     gpu_lights.write_buffers(&render_device, &render_queue);
+
+    shadow_map_storage.try_update(
+        ShadowMap2dMeta {
+            count: point_light_count as u32,
+            size: shadow_map_config.size as u32,
+        },
+        &render_device,
+    );
 }

@@ -9,8 +9,7 @@ use bevy::{
             AddressMode, BindGroupLayout, BindGroupLayoutEntries, CachedRenderPipelineId,
             ColorTargetState, ColorWrites, FilterMode, FragmentState, MultisampleState,
             PipelineCache, PrimitiveState, RenderPipelineDescriptor, Sampler, SamplerBindingType,
-            SamplerDescriptor, ShaderStages, StorageTextureAccess, TextureFormat,
-            TextureSampleType,
+            SamplerDescriptor, ShaderStages, TextureFormat, TextureSampleType,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
@@ -19,7 +18,10 @@ use bevy::{
 
 use bevy::render::render_resource::binding_types as binding;
 
-use super::{SHADOW_MAIN_PASS_SHADER, SHADOW_PREPASS_SHADER};
+use super::{
+    resource::{GpuPointLight2d, GpuShadowView2d},
+    SHADOW_MAIN_PASS_SHADER, SHADOW_PREPASS_SHADER,
+};
 
 #[derive(Resource)]
 pub struct Shadow2dPrepassPipeline {
@@ -55,11 +57,6 @@ impl FromWorld for Shadow2dPrepassPipeline {
                     // Main texture
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
                     binding::sampler(SamplerBindingType::Filtering),
-                    // Shadow map precursor
-                    binding::texture_storage_2d(
-                        TextureFormat::Rg32Float,
-                        StorageTextureAccess::WriteOnly,
-                    ),
                 ),
             ),
         );
@@ -76,7 +73,7 @@ impl FromWorld for Shadow2dPrepassPipeline {
                         shader_defs: vec![],
                         entry_point: "fragment".into(),
                         targets: vec![Some(ColorTargetState {
-                            format: TextureFormat::bevy_default(),
+                            format: TextureFormat::Rg32Float,
                             blend: None,
                             write_mask: ColorWrites::ALL,
                         })],
@@ -95,9 +92,11 @@ impl FromWorld for Shadow2dPrepassPipeline {
     }
 }
 
+#[derive(Resource)]
 pub struct Shadow2dMainPassPipeline {
     pub cached_id: CachedRenderPipelineId,
     pub main_pass_layout: BindGroupLayout,
+    pub main_texture_sampler: Sampler,
 }
 
 impl FromWorld for Shadow2dMainPassPipeline {
@@ -115,9 +114,28 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     // Main texture
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
                     binding::sampler(SamplerBindingType::Filtering),
+                    // Point lights
+                    binding::storage_buffer::<Vec<GpuPointLight2d>>(false),
+                    // Shadow views
+                    binding::storage_buffer::<Vec<GpuShadowView2d>>(false),
                 ),
             ),
         );
+
+        let main_texture_sampler = render_device.create_sampler(&SamplerDescriptor {
+            label: Some("main_texture_sampler"),
+            address_mode_u: AddressMode::ClampToEdge,
+            address_mode_v: AddressMode::ClampToEdge,
+            address_mode_w: AddressMode::ClampToEdge,
+            mag_filter: FilterMode::Linear,
+            min_filter: FilterMode::Linear,
+            mipmap_filter: FilterMode::Linear,
+            lod_min_clamp: 0.0,
+            lod_max_clamp: f32::MAX,
+            compare: None,
+            anisotropy_clamp: 1,
+            border_color: None,
+        });
 
         let cached_id =
             world
@@ -145,6 +163,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
         Self {
             cached_id,
             main_pass_layout,
+            main_texture_sampler,
         }
     }
 }

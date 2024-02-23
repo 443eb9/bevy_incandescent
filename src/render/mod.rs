@@ -9,12 +9,15 @@ use bevy::{
     },
 };
 
-use crate::ecs::light::ShadowLayers;
+use crate::{
+    ecs::light::ShadowLayers,
+    render::graph::{Shadow2dMainPass, Shadow2dReductionNode},
+};
 
 use self::{
     graph::{Shadow2dMeshPassNode, Shadow2dNode, Shadow2dPrepassNode},
-    pipeline::Shadow2dPrepassPipeline,
-    resource::{GpuLights2d, ShadowMap2dConfig},
+    pipeline::{Shadow2dMainPassPipeline, Shadow2dPrepassPipeline},
+    resource::{GpuLights2d, ShadowMap2dConfig, ShadowMap2dStorage},
 };
 
 pub mod draw;
@@ -51,9 +54,7 @@ impl Plugin for IncandescentRenderPlugin {
             return;
         };
 
-        render_app
-            .init_resource::<ShadowMap2dConfig>()
-            .init_resource::<GpuLights2d>();
+        render_app.init_resource::<ShadowMap2dConfig>();
 
         render_app
             .add_systems(ExtractSchedule, extract::extract_point_lights)
@@ -62,11 +63,11 @@ impl Plugin for IncandescentRenderPlugin {
         render_app
             .add_render_graph_node::<Shadow2dMeshPassNode>(Core2d, Shadow2dNode::Shadow2dMeshPass)
             .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, Shadow2dNode::Shadow2dPrepass)
-            .add_render_graph_node::<Shadow2dPrepassNode>(
+            .add_render_graph_node::<Shadow2dReductionNode>(
                 Core2d,
                 Shadow2dNode::Shadow2dReductionPass,
             )
-            .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, Shadow2dNode::Shadow2dMainPass)
+            .add_render_graph_node::<Shadow2dMainPass>(Core2d, Shadow2dNode::Shadow2dMainPass)
             .add_render_graph_edges(
                 Core2d,
                 (
@@ -85,6 +86,10 @@ impl Plugin for IncandescentRenderPlugin {
             return;
         };
 
-        render_app.init_resource::<Shadow2dPrepassPipeline>();
+        render_app
+            .init_resource::<Shadow2dPrepassPipeline>()
+            .init_resource::<Shadow2dMainPassPipeline>()
+            .init_resource::<GpuLights2d>()
+            .init_resource::<ShadowMap2dStorage>();
     }
 }

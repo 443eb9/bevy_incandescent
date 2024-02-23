@@ -1,10 +1,6 @@
-use std::marker::PhantomData;
-
 use bevy::{
     ecs::{component::Component, entity::Entity},
-    render::{
-        color::Color, render_resource::ShaderType, texture::ColorAttachment, view::RenderLayers,
-    },
+    render::{color::Color, texture::ColorAttachment, view::RenderLayers},
 };
 
 #[derive(Component)]
@@ -16,27 +12,6 @@ pub struct ShadowCaster2dVisibility(pub bool);
 #[derive(Component)]
 pub struct ShadowView2d {
     pub attachment: ColorAttachment,
-}
-
-#[derive(Component)]
-pub struct DynamicUniformIndex<U: ShaderType> {
-    index: u32,
-    _marker: PhantomData<U>,
-}
-
-impl<U: ShaderType> DynamicUniformIndex<U> {
-    #[inline]
-    pub fn new(index: u32) -> Self {
-        Self {
-            index,
-            _marker: PhantomData,
-        }
-    }
-
-    #[inline]
-    pub fn index(&self) -> u32 {
-        self.index
-    }
 }
 
 #[derive(Component)]

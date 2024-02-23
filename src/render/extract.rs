@@ -35,7 +35,6 @@ pub fn extract_point_lights(
         .iter()
         .filter_map(|(e, v)| if v.0 { Some(e) } else { None })
         .collect::<Vec<_>>();
-    println!("casters: {:?}", casters.len());
     commands.insert_or_spawn_batch(
         lights_query
             .iter()
