@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_incandescent"
 description = "A 2d lighting crate for bevy."
-exclude = ["assets/"]
+include = ["src/*"]
 
 [profile.dev]
 opt-level = 1

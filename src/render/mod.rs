@@ -15,7 +15,11 @@ use bevy::{
     utils::nonmax::NonMaxU32,
 };
 
-use self::{graph::Shadow2dPrepassNode, resource::PointLight2dShadowMap};
+use self::{
+    graph::{Shadow2dMeshPassNode, Shadow2dNode, Shadow2dPrepassNode},
+    pipeline::Shadow2dPrepassPipeline,
+    resource::{GpuLights2d, ShadowMap2dConfig},
+};
 
 pub mod extract;
 pub mod graph;
@@ -34,32 +38,40 @@ impl Plugin for IncandescentRenderPlugin {
             return;
         };
 
-        render_app.init_resource::<PointLight2dShadowMap>();
+        render_app
+            .init_resource::<ShadowMap2dConfig>()
+            .init_resource::<GpuLights2d>();
 
         render_app
-            .add_systems(
-                ExtractSchedule,
-                (
-                    extract::extract_camera_projections,
-                    extract::extract_point_lights,
-                ),
-            )
+            .add_systems(ExtractSchedule, extract::extract_point_lights)
             .add_systems(Render, prepare::prepare_lights.in_set(RenderSet::Prepare));
 
         render_app
-            .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, IncandescentNode::Shadow2dPrepass)
+            .add_render_graph_node::<Shadow2dMeshPassNode>(Core2d, Shadow2dNode::Shadow2dMeshPass)
+            .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, Shadow2dNode::Shadow2dPrepass)
+            .add_render_graph_node::<Shadow2dPrepassNode>(
+                Core2d,
+                Shadow2dNode::Shadow2dReductionPass,
+            )
+            .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, Shadow2dNode::Shadow2dMainPass)
             .add_render_graph_edges(
                 Core2d,
                 (
                     Node2d::MainPass,
-                    IncandescentNode::Shadow2dPrepass,
+                    Shadow2dNode::Shadow2dMeshPass,
+                    Shadow2dNode::Shadow2dPrepass,
+                    Shadow2dNode::Shadow2dReductionPass,
+                    Shadow2dNode::Shadow2dMainPass,
                     Node2d::Bloom,
                 ),
             );
     }
-}
 
-#[derive(RenderLabel, Debug, Hash, PartialEq, Eq, Clone)]
-pub enum IncandescentNode {
-    Shadow2dPrepass,
+    fn finish(&self, app: &mut App) {
+        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
+            return;
+        };
+
+        render_app.init_resource::<Shadow2dPrepassPipeline>();
+    }
 }

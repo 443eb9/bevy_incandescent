@@ -43,7 +43,7 @@ impl FromWorld for Shadow2dPrepassPipeline {
             lod_min_clamp: 0.0,
             lod_max_clamp: f32::MAX,
             compare: None,
-            anisotropy_clamp: 0,
+            anisotropy_clamp: 1,
             border_color: None,
         });
 

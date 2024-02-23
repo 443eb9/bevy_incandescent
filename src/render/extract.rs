@@ -21,18 +21,6 @@ pub struct ExtractedPointLight2d {
     pub spot_light_angles: Option<(f32, f32)>,
 }
 
-pub fn extract_camera_projections(
-    mut commands: Commands,
-    cameras_query: Extract<Query<(Entity, &OrthographicProjection)>>,
-) {
-    commands.insert_or_spawn_batch(
-        cameras_query
-            .iter()
-            .map(|(entity, projection)| (entity, projection.clone()))
-            .collect::<Vec<_>>(),
-    );
-}
-
 pub fn extract_point_lights(
     mut commands: Commands,
     lights_query: Extract<
