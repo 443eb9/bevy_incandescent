@@ -1,11 +1,10 @@
 use bevy::{
     ecs::system::Resource,
-    math::{Mat4, UVec2, UVec4, Vec2, Vec4, Vec4Swizzles},
+    math::{Mat4, UVec4, Vec4},
     render::{
         camera::OrthographicProjection,
         render_resource::{BindingResource, DynamicUniformBuffer, ShaderType},
         renderer::{RenderDevice, RenderQueue},
-        view::ExtractedView,
     },
     transform::components::GlobalTransform,
 };

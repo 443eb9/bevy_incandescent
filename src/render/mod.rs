@@ -1,19 +1,15 @@
-use std::ops::Range;
-
 use bevy::{
     app::{App, Plugin},
-    asset::Handle,
+    asset::{load_internal_asset, Handle},
     core_pipeline::core_2d::graph::{Core2d, Node2d},
-    ecs::{entity::Entity, schedule::IntoSystemConfigs},
+    ecs::schedule::IntoSystemConfigs,
     render::{
-        render_graph::{RenderGraphApp, RenderLabel},
-        render_phase::{CachedRenderPipelinePhaseItem, DrawFunctionId, PhaseItem},
-        render_resource::{CachedRenderPipelineId, Shader},
-        view::RenderLayers,
-        ExtractSchedule, Render, RenderApp, RenderSet,
+        render_graph::RenderGraphApp, render_resource::Shader, view::RenderLayers, ExtractSchedule,
+        Render, RenderApp, RenderSet,
     },
-    utils::nonmax::NonMaxU32,
 };
+
+use crate::ecs::light::ShadowLayers;
 
 use self::{
     graph::{Shadow2dMeshPassNode, Shadow2dNode, Shadow2dPrepassNode},
@@ -21,19 +17,36 @@ use self::{
     resource::{GpuLights2d, ShadowMap2dConfig},
 };
 
+pub mod draw;
 pub mod extract;
 pub mod graph;
 pub mod pipeline;
 pub mod prepare;
 pub mod resource;
+pub mod visibility;
 
-pub const DEFAULT_SHADOW_CASTER_LAYER: RenderLayers = RenderLayers::layer(31);
+pub const DEFAULT_SHADOW_CASTER_LAYER: ShadowLayers = ShadowLayers(RenderLayers::layer(31));
 pub const SHADOW_PREPASS_SHADER: Handle<Shader> = Handle::weak_from_u128(532136841321852148563134);
+pub const SHADOW_MAIN_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13643651896413518964153);
 
 pub struct IncandescentRenderPlugin;
 
 impl Plugin for IncandescentRenderPlugin {
     fn build(&self, app: &mut App) {
+        load_internal_asset!(
+            app,
+            SHADOW_PREPASS_SHADER,
+            "shaders/shadow2d_prepass.wgsl",
+            Shader::from_wgsl
+        );
+
+        load_internal_asset!(
+            app,
+            SHADOW_MAIN_PASS_SHADER,
+            "shaders/shadow2d_main_pass.wgsl",
+            Shader::from_wgsl
+        );
+
         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;
         };

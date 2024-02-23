@@ -2,11 +2,16 @@ use std::marker::PhantomData;
 
 use bevy::{
     ecs::{component::Component, entity::Entity},
-    render::{color::Color, render_resource::ShaderType, texture::ColorAttachment},
+    render::{
+        color::Color, render_resource::ShaderType, texture::ColorAttachment, view::RenderLayers,
+    },
 };
 
 #[derive(Component)]
 pub struct ShadowCaster2d;
+
+#[derive(Component)]
+pub struct ShadowCaster2dVisibility(pub bool);
 
 #[derive(Component)]
 pub struct ShadowView2d {
@@ -44,3 +49,6 @@ pub struct PointLight2d {
     pub range: f32,
     pub radius: f32,
 }
+
+#[derive(Component)]
+pub struct ShadowLayers(pub RenderLayers);

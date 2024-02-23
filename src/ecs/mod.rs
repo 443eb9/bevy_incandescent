@@ -1,6 +1,7 @@
 use bevy::app::{App, Plugin};
 
 pub mod bundle;
+pub mod camera;
 pub mod light;
 
 pub struct IncandescentECSPlugin;

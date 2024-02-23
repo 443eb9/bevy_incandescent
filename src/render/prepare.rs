@@ -1,25 +1,25 @@
 use bevy::{
-    core_pipeline::core_2d::Transparent2d,
     ecs::{
         entity::Entity,
         query::With,
         system::{Commands, Query, Res, ResMut},
     },
     render::{
-        camera::OrthographicProjection,
         color::Color,
-        render_phase::RenderPhase,
         render_resource::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, ColorAttachment, TextureCache},
-        view::{ExtractedView, ViewTarget, VisibleEntities},
+        view::{Msaa, ViewTarget},
     },
     transform::components::GlobalTransform,
 };
 
-use crate::ecs::light::{ShadowView2d, VisibleLight2dEntities};
+use crate::ecs::{
+    camera::ShadowCameraDriver,
+    light::{ShadowView2d, VisibleLight2dEntities},
+};
 
 use super::{
     extract::ExtractedPointLight2d,
@@ -35,6 +35,7 @@ pub fn prepare_lights(
     mut gpu_lights: ResMut<GpuLights2d>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
+    msaa: Res<Msaa>,
 ) {
     let point_light_count = point_lights.iter().count();
     gpu_lights.clear();
@@ -55,7 +56,7 @@ pub fn prepare_lights(
                     depth_or_array_layers: (point_light_count as u32).max(1),
                 },
                 mip_level_count: 1,
-                sample_count: 1,
+                sample_count: msaa.samples(),
                 dimension: TextureDimension::D2,
                 format: TextureFormat::bevy_default(),
                 usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
@@ -70,19 +71,17 @@ pub fn prepare_lights(
             ),
         };
 
-        commands.entity(light_entity).insert((
-            uniform_indices,
-            shadow_view,
-            RenderPhase::<Transparent2d>::default(),
-        ));
+        commands
+            .entity(light_entity)
+            .insert((uniform_indices, shadow_view));
     }
 
-    let lights = point_lights.iter().map(|(e, ..)| e).collect::<Vec<_>>();
-    main_views.iter().for_each(|main_view_entity| {
-        commands
-            .entity(main_view_entity)
-            .insert(VisibleLight2dEntities(lights.clone()));
-    });
+    if let Some(shadow_camera) = main_views.iter().next() {
+        commands.entity(shadow_camera).insert((
+            VisibleLight2dEntities(point_lights.iter().map(|(e, ..)| e).collect::<Vec<_>>()),
+            ShadowCameraDriver,
+        ));
+    }
 
     gpu_lights.write_buffers(&render_device, &render_queue);
 }

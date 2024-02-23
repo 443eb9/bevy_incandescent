@@ -9,8 +9,8 @@ use bevy::{
             AddressMode, BindGroupLayout, BindGroupLayoutEntries, CachedRenderPipelineId,
             ColorTargetState, ColorWrites, FilterMode, FragmentState, MultisampleState,
             PipelineCache, PrimitiveState, RenderPipelineDescriptor, Sampler, SamplerBindingType,
-            SamplerDescriptor, ShaderStages, SpecializedRenderPipeline, TextureFormat,
-            TextureSampleType, VertexState,
+            SamplerDescriptor, ShaderStages, StorageTextureAccess, TextureFormat,
+            TextureSampleType,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
@@ -19,7 +19,7 @@ use bevy::{
 
 use bevy::render::render_resource::binding_types as binding;
 
-use super::{resource::GpuPointLight2d, SHADOW_PREPASS_SHADER};
+use super::{SHADOW_MAIN_PASS_SHADER, SHADOW_PREPASS_SHADER};
 
 #[derive(Resource)]
 pub struct Shadow2dPrepassPipeline {
@@ -52,11 +52,14 @@ impl FromWorld for Shadow2dPrepassPipeline {
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::FRAGMENT,
                 (
-                    // The image of rendered sprites
+                    // Main texture
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
-                    binding::sampler(SamplerBindingType::NonFiltering),
-                    // Point lights
-                    binding::uniform_buffer::<GpuPointLight2d>(true),
+                    binding::sampler(SamplerBindingType::Filtering),
+                    // Shadow map precursor
+                    binding::texture_storage_2d(
+                        TextureFormat::Rg32Float,
+                        StorageTextureAccess::WriteOnly,
+                    ),
                 ),
             ),
         );
@@ -92,20 +95,56 @@ impl FromWorld for Shadow2dPrepassPipeline {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub struct Shadow2dPrepassPipelineKey;
+pub struct Shadow2dMainPassPipeline {
+    pub cached_id: CachedRenderPipelineId,
+    pub main_pass_layout: BindGroupLayout,
+}
 
-// impl SpecializedRenderPipeline for Shadow2dPrepassPipeline {
-//     type Key = Shadow2dPrepassPipelineKey;
+impl FromWorld for Shadow2dMainPassPipeline {
+    fn from_world(world: &mut World) -> Self {
+        let render_device = world.resource::<RenderDevice>();
 
-//     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
-//         RenderPipelineDescriptor {
-//             label: Some("shadow2d_prepass_pipeline".into()),
-//             layout: vec![self.obstacle_texture_layout, self.shadow_mapping_layout],
-//             push_constant_ranges: vec![],
-//             vertex: VertexState {
-//                 shader:
-//             }
-//         }
-//     }
-// }
+        let main_pass_layout = render_device.create_bind_group_layout(
+            "main_pass_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::FRAGMENT,
+                (
+                    // Shadow map
+                    binding::texture_2d(TextureSampleType::Float { filterable: false }),
+                    binding::sampler(SamplerBindingType::NonFiltering),
+                    // Main texture
+                    binding::texture_2d(TextureSampleType::Float { filterable: true }),
+                    binding::sampler(SamplerBindingType::Filtering),
+                ),
+            ),
+        );
+
+        let cached_id =
+            world
+                .resource_mut::<PipelineCache>()
+                .queue_render_pipeline(RenderPipelineDescriptor {
+                    label: Some("shadow2d_main_pass_pipeline".into()),
+                    layout: vec![main_pass_layout.clone()],
+                    vertex: fullscreen_shader_vertex_state(),
+                    fragment: Some(FragmentState {
+                        shader: SHADOW_MAIN_PASS_SHADER,
+                        shader_defs: vec![],
+                        entry_point: "fragment".into(),
+                        targets: vec![Some(ColorTargetState {
+                            format: TextureFormat::bevy_default(),
+                            blend: None,
+                            write_mask: ColorWrites::ALL,
+                        })],
+                    }),
+                    primitive: PrimitiveState::default(),
+                    depth_stencil: None,
+                    multisample: MultisampleState::default(),
+                    push_constant_ranges: vec![],
+                });
+
+        Self {
+            cached_id,
+            main_pass_layout,
+        }
+    }
+}

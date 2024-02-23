@@ -6,7 +6,6 @@ A 2d lighting crate for bevy. Currently wip.
 
 - Basic Lighting
 - PBS Lighting
-- Bloom
 - Screen Space SSAO
 - Support `bevy_entitiles`
 - Volumetric Clouds
@@ -15,7 +14,7 @@ A 2d lighting crate for bevy. Currently wip.
 
 ## Render Graph
 
-![]()
+![](https://raw.githubusercontent.com/443eb9/bevy_incandescent/master/doc/imgs/render_graph.png)
 
 ## Special Thanks
 

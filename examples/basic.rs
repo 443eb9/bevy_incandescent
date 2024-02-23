@@ -10,7 +10,7 @@ use bevy::{
 };
 use bevy_incandescent::{
     ecs::{
-        bundle::{PointLight2dBundle, ShadowCaster2dBundle},
+        bundle::{PointLight2dBundle, ShadowCaster2dBundle, ShadowRenderedCameraBundle},
         light::PointLight2d,
     },
     IncandescentPlugin,
@@ -29,7 +29,10 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((
+        Camera2dBundle::default(),
+        ShadowRenderedCameraBundle::default(),
+    ));
 
     let mut rd = rand::thread_rng();
     for _ in 0..10 {
