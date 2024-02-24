@@ -3,14 +3,14 @@ use bevy::{
         system::Resource,
         world::{FromWorld, World},
     },
-    math::{Mat4, UVec4, Vec2, Vec4},
+    math::{Mat4, UVec3, UVec4, Vec2, Vec4},
     render::{
         camera::OrthographicProjection,
         render_resource::{
             AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
-            GpuArrayBuffer, Sampler, SamplerDescriptor, ShaderType, TextureAspect,
-            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
-            TextureViewDescriptor, TextureViewDimension,
+            GpuArrayBuffer, SamplerDescriptor, ShaderType, TextureAspect, TextureDescriptor,
+            TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+            TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::GpuImage,
@@ -18,13 +18,9 @@ use bevy::{
     transform::components::GlobalTransform,
 };
 
-use super::extract::ExtractedPointLight2d;
-
-#[derive(ShaderType)]
-pub struct LightMeta {
-    pub shadow_map_size: u32,
-    pub light_index: u32,
-}
+use super::{
+    extract::ExtractedPointLight2d, prepare::DynamicUniformIndex, SHADOW_PREPASS_WORKGROUP_SIZE,
+};
 
 #[derive(ShaderType, Clone)]
 pub struct GpuPointLight2d {
@@ -68,7 +64,6 @@ impl GpuShadowView2d {
 pub struct GpuLights2d {
     views: GpuArrayBuffer<GpuShadowView2d>,
     point_lights: GpuArrayBuffer<GpuPointLight2d>,
-    light_meta: DynamicUniformBuffer<LightMeta>,
 }
 
 impl FromWorld for GpuLights2d {
@@ -77,7 +72,6 @@ impl FromWorld for GpuLights2d {
         Self {
             views: GpuArrayBuffer::new(&render_device),
             point_lights: GpuArrayBuffer::new(&render_device),
-            light_meta: DynamicUniformBuffer::default(),
         }
     }
 }
@@ -100,22 +94,46 @@ impl GpuLights2d {
     }
 
     #[inline]
-    pub fn light_meta_binding(&self) -> BindingResource {
-        self.light_meta.binding().unwrap()
-    }
-
-    #[inline]
     pub fn clear(&mut self) {
         self.views.clear();
         self.point_lights.clear();
-        self.light_meta.clear();
     }
 
     #[inline]
     pub fn write_buffers(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
         self.views.write_buffer(render_device, render_queue);
         self.point_lights.write_buffer(render_device, render_queue);
-        self.light_meta.write_buffer(render_device, render_queue);
+    }
+}
+
+#[derive(ShaderType)]
+pub struct GpuShadowMap2dMeta {
+    pub index: u32,
+    pub size: u32,
+}
+
+#[derive(Resource, Default)]
+pub struct GpuShadowMap2dMetaBuffer(DynamicUniformBuffer<GpuShadowMap2dMeta>);
+
+impl GpuShadowMap2dMetaBuffer {
+    #[inline]
+    pub fn push(&mut self, meta: GpuShadowMap2dMeta) -> DynamicUniformIndex<GpuShadowMap2dMeta> {
+        DynamicUniformIndex::new(self.0.push(&meta))
+    }
+
+    #[inline]
+    pub fn write_buffer(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
+        self.0.write_buffer(render_device, render_queue);
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+
+    #[inline]
+    pub fn binding(&self) -> BindingResource {
+        self.0.binding().unwrap()
     }
 }
 
@@ -131,7 +149,7 @@ impl Default for ShadowMap2dConfig {
         Self {
             near: -1000.,
             far: 1000.,
-            size: 1024,
+            size: 512,
         }
     }
 }
@@ -147,50 +165,17 @@ impl ShadowMap2dConfig {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq)]
 pub struct ShadowMap2dMeta {
     pub count: u32,
     pub size: u32,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct ShadowMap2dStorage {
     meta: ShadowMap2dMeta,
-    shadow_map: GpuImage,
-}
-
-impl FromWorld for ShadowMap2dStorage {
-    fn from_world(world: &mut World) -> Self {
-        let render_device = world.resource::<RenderDevice>();
-        let dummy_image = render_device.create_texture(&TextureDescriptor {
-            label: Some("shadow_map_2d"),
-            size: Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rg16Float,
-            usage: TextureUsages::STORAGE_BINDING
-                | TextureUsages::TEXTURE_BINDING
-                | TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
-
-        Self {
-            meta: ShadowMap2dMeta { count: 0, size: 0 },
-            shadow_map: GpuImage {
-                texture_view: dummy_image.create_view(&TextureViewDescriptor::default()),
-                texture_format: dummy_image.format(),
-                texture: dummy_image,
-                sampler: render_device.create_sampler(&SamplerDescriptor::default()),
-                size: Vec2::ZERO,
-                mip_level_count: 1,
-            },
-        }
-    }
+    work_group_count_per_light: UVec3,
+    shadow_map: Option<GpuImage>,
 }
 
 impl ShadowMap2dStorage {
@@ -209,18 +194,18 @@ impl ShadowMap2dStorage {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rg16Float,
+            format: TextureFormat::Rg32Float,
             usage: TextureUsages::STORAGE_BINDING
                 | TextureUsages::TEXTURE_BINDING
                 | TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
 
-        self.shadow_map = GpuImage {
+        self.shadow_map = Some(GpuImage {
             texture_view: shadow_map.create_view(&TextureViewDescriptor {
                 label: Some("shadow_map_2d_view"),
                 format: Some(shadow_map.format()),
-                dimension: Some(TextureViewDimension::D2),
+                dimension: Some(TextureViewDimension::D2Array),
                 aspect: TextureAspect::All,
                 base_mip_level: 0,
                 mip_level_count: None,
@@ -245,17 +230,22 @@ impl ShadowMap2dStorage {
             }),
             size: Vec2::splat(meta.size as f32),
             mip_level_count: 0,
+        });
+        self.work_group_count_per_light = UVec3 {
+            x: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.x),
+            y: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.y),
+            z: 1,
         };
         self.meta = meta;
     }
 
     #[inline]
     pub fn texture_view(&self) -> &TextureView {
-        &self.shadow_map.texture_view
+        &self.shadow_map.as_ref().unwrap().texture_view
     }
 
     #[inline]
-    pub fn sampler(&self) -> &Sampler {
-        &self.shadow_map.sampler
+    pub fn work_group_count_per_light(&self) -> UVec3 {
+        self.work_group_count_per_light
     }
 }

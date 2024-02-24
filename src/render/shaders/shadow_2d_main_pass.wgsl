@@ -11,24 +11,21 @@ struct ShadowView2d {
 }
 
 @group(0) @binding(0)
-var shadow_map: texture_storage_2d_array<rg32float, write>;
+var main_tex: texture_2d<f32>;
 
 @group(0) @binding(1)
-var shadow_map_sampler: sampler;
+var main_tex_sampler: sampler;
 
 @group(0) @binding(2)
-var main_texture: texture_2d<f32>;
+var shadow_map: texture_storage_2d_array<rg32float, read>;
 
 @group(0) @binding(3)
-var main_texture_sampler: sampler;
-
-@group(0) @binding(4)
 var<storage> point_lights: array<PointLight>;
 
-@group(0) @binding(5)
+@group(0) @binding(4)
 var<storage> shadow_views: array<ShadowView2d>;
 
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
-    return vec4f(textureSample(main_texture, main_texure_sampler, in.uv), 0.0, 1.0);
+    return textureSample(main_tex, main_tex_sampler, in.uv);
 }
