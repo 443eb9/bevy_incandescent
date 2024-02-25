@@ -3,9 +3,8 @@ use bevy::{
         system::Resource,
         world::{FromWorld, World},
     },
-    math::{Mat4, UVec3, UVec4, Vec2, Vec4},
+    math::{Mat4, UVec3, Vec2, Vec4},
     render::{
-        camera::OrthographicProjection,
         render_resource::{
             AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
             GpuArrayBuffer, SamplerDescriptor, ShaderType, TextureAspect, TextureDescriptor,
@@ -107,33 +106,63 @@ impl GpuLights2d {
 }
 
 #[derive(ShaderType)]
-pub struct GpuShadowMap2dMeta {
+pub struct GpuShadowMapMeta {
     pub index: u32,
     pub size: u32,
 }
 
 #[derive(Resource, Default)]
-pub struct GpuShadowMap2dMetaBuffer(DynamicUniformBuffer<GpuShadowMap2dMeta>);
+pub struct GpuMetaBuffers {
+    light: DynamicUniformBuffer<GpuShadowMapMeta>,
+    reduction_time: DynamicUniformBuffer<u32>,
+    reduction_time_indices: Vec<u32>,
+}
 
-impl GpuShadowMap2dMetaBuffer {
+impl GpuMetaBuffers {
     #[inline]
-    pub fn push(&mut self, meta: GpuShadowMap2dMeta) -> DynamicUniformIndex<GpuShadowMap2dMeta> {
-        DynamicUniformIndex::new(self.0.push(&meta))
+    pub fn push_light_meta(
+        &mut self,
+        meta: GpuShadowMapMeta,
+    ) -> DynamicUniformIndex<GpuShadowMapMeta> {
+        DynamicUniformIndex::new(self.light.push(&meta))
     }
 
     #[inline]
-    pub fn write_buffer(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        self.0.write_buffer(render_device, render_queue);
+    pub fn init_reduction_time_buffer(&mut self, reduction_time: u32) {
+        self.reduction_time.clear();
+        self.reduction_time_indices.clear();
+
+        for i in 0..reduction_time {
+            let idx = self.reduction_time.push(&(i + 1));
+            self.reduction_time_indices.push(idx);
+        }
+    }
+
+    #[inline]
+    pub fn get_reduction_time_index(&self, reduction_time: u32) -> u32 {
+        self.reduction_time_indices[reduction_time as usize]
     }
 
     #[inline]
     pub fn clear(&mut self) {
-        self.0.clear();
+        self.light.clear();
     }
 
     #[inline]
-    pub fn binding(&self) -> BindingResource {
-        self.0.binding().unwrap()
+    pub fn write_buffers(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
+        self.light.write_buffer(render_device, render_queue);
+        self.reduction_time
+            .write_buffer(render_device, render_queue);
+    }
+
+    #[inline]
+    pub fn shadow_map_meta_buffer_binding(&self) -> BindingResource {
+        self.light.binding().unwrap()
+    }
+
+    #[inline]
+    pub fn reduction_time_buffer_binding(&self) -> BindingResource {
+        self.reduction_time.binding().unwrap()
     }
 }
 
@@ -141,7 +170,7 @@ impl GpuShadowMap2dMetaBuffer {
 pub struct ShadowMap2dConfig {
     pub near: f32,
     pub far: f32,
-    pub size: usize,
+    pub size: u32,
 }
 
 impl Default for ShadowMap2dConfig {
@@ -155,13 +184,8 @@ impl Default for ShadowMap2dConfig {
 }
 
 impl ShadowMap2dConfig {
-    pub fn get_proj_mat(&self, proj: &OrthographicProjection) -> Mat4 {
-        let t = self.size as f32;
-        Mat4::orthographic_rh(t, t, t, t, proj.near, proj.far)
-    }
-
-    pub fn get_view_port(&self) -> UVec4 {
-        UVec4::new(0, 0, self.size as u32, self.size as u32)
+    pub fn get_proj_mat(&self, scale: f32) -> Mat4 {
+        Mat4::orthographic_rh(-scale, scale, -scale, scale, self.near, self.far)
     }
 }
 
@@ -174,12 +198,20 @@ pub struct ShadowMap2dMeta {
 #[derive(Resource, Default)]
 pub struct ShadowMap2dStorage {
     meta: ShadowMap2dMeta,
+    primary_shadow_map: Option<GpuImage>,
+    secondary_shadow_map: Option<GpuImage>,
     work_group_count_per_light: UVec3,
-    shadow_map: Option<GpuImage>,
+    work_group_count_total: UVec3,
+    reduction_time: u32,
 }
 
 impl ShadowMap2dStorage {
-    pub fn try_update(&mut self, meta: ShadowMap2dMeta, render_device: &RenderDevice) {
+    pub fn try_update(
+        &mut self,
+        meta: ShadowMap2dMeta,
+        render_device: &RenderDevice,
+        meta_buffers: &mut GpuMetaBuffers,
+    ) {
         if self.meta == meta {
             return;
         }
@@ -201,7 +233,7 @@ impl ShadowMap2dStorage {
             view_formats: &[],
         });
 
-        self.shadow_map = Some(GpuImage {
+        self.primary_shadow_map = Some(GpuImage {
             texture_view: shadow_map.create_view(&TextureViewDescriptor {
                 label: Some("shadow_map_2d_view"),
                 format: Some(shadow_map.format()),
@@ -231,21 +263,60 @@ impl ShadowMap2dStorage {
             size: Vec2::splat(meta.size as f32),
             mip_level_count: 0,
         });
+        self.secondary_shadow_map = self.primary_shadow_map.clone();
         self.work_group_count_per_light = UVec3 {
             x: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.x),
             y: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.y),
             z: 1,
         };
+        self.work_group_count_total = UVec3 {
+            x: self.work_group_count_per_light.x * meta.size,
+            y: self.work_group_count_per_light.y * meta.size,
+            z: meta.count,
+        };
+        self.reduction_time = meta.size.trailing_zeros();
         self.meta = meta;
+
+        assert_eq!(
+            2u32.pow(self.reduction_time),
+            self.meta.size,
+            "Shadow map size must be a power of 2!"
+        );
+
+        meta_buffers.init_reduction_time_buffer(self.reduction_time);
     }
 
     #[inline]
-    pub fn texture_view(&self) -> &TextureView {
-        &self.shadow_map.as_ref().unwrap().texture_view
+    pub fn texture_view_primary(&self) -> &TextureView {
+        &self.primary_shadow_map.as_ref().unwrap().texture_view
+    }
+
+    #[inline]
+    pub fn texture_view_secondary(&self) -> &TextureView {
+        &self.secondary_shadow_map.as_ref().unwrap().texture_view
     }
 
     #[inline]
     pub fn work_group_count_per_light(&self) -> UVec3 {
         self.work_group_count_per_light
+    }
+
+    #[inline]
+    pub fn work_group_count_total(&self) -> UVec3 {
+        self.work_group_count_total
+    }
+
+    #[inline]
+    pub fn reduction_time(&self) -> u32 {
+        self.reduction_time
+    }
+
+    #[inline]
+    pub fn final_texture_view(&self) -> &TextureView {
+        if self.reduction_time % 2 == 0 {
+            &self.primary_shadow_map.as_ref().unwrap().texture_view
+        } else {
+            &self.secondary_shadow_map.as_ref().unwrap().texture_view
+        }
     }
 }

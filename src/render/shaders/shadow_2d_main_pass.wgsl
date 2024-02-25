@@ -27,5 +27,13 @@ var<storage> shadow_views: array<ShadowView2d>;
 
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
-    return textureSample(main_tex, main_tex_sampler, in.uv);
+    // let px = vec2i(in.uv * vec2f(512., 512.));
+    // var u = 1;
+    // if in.uv.x < 0.5 {
+    //     u = 0;
+    // }
+    // return textureLoad(shadow_map, vec2i(u, px.y), 0);
+
+    let px = vec2i(in.uv * vec2f(512., 512.));
+    return textureLoad(shadow_map, px, 0);
 }

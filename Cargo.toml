@@ -34,7 +34,11 @@ bevy = { version = "0.13", features = [
     "bevy_gizmos",
 ] }
 bevy_mod_debugdump = "0.10.0"
+bevy-inspector-egui = "0.23.2"
 rand = "0.8"
+
+# [patch.crates-io]
+# bevy = { path = "../bevy" }
 
 [[example]]
 name = "basic"

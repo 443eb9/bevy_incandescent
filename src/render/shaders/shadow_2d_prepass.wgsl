@@ -1,7 +1,4 @@
-struct ShadowMapMeta {
-    index: u32,
-    size: u32,
-}
+#import bevy_incandescent::shadow_2d_types::ShadowMapMeta;
 
 @group(0) @binding(0)
 var main_tex: texture_2d<f32>;
@@ -30,8 +27,6 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
         0.,
         0.,
     );
-
-    storageBarrier();
 
     textureStore(
         shadow_map,

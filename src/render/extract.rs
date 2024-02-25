@@ -3,9 +3,9 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        system::{Commands, Query},
+        system::{Commands, Query, Res},
     },
-    math::{Mat4, UVec4},
+    math::UVec4,
     render::{
         color::Color,
         render_phase::RenderPhase,
@@ -16,6 +16,8 @@ use bevy::{
 };
 
 use crate::ecs::light::{PointLight2d, ShadowCaster2dVisibility};
+
+use super::resource::ShadowMap2dConfig;
 
 #[derive(Component, Clone, Copy)]
 pub struct ExtractedPointLight2d {
@@ -30,6 +32,7 @@ pub fn extract_point_lights(
     mut commands: Commands,
     lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform)>>,
     caster_query: Extract<Query<(Entity, &ShadowCaster2dVisibility)>>,
+    shadow_map_config: Res<ShadowMap2dConfig>,
 ) {
     let casters = caster_query
         .iter()
@@ -54,12 +57,9 @@ pub fn extract_point_lights(
                         VisibleEntities {
                             entities: casters.clone(),
                         },
-                        // This is not important for light rendering
-                        // but without it, 2d meshes won't think it's a camera
-                        // then they won't queue themselves to the phase
                         ExtractedView {
-                            projection: Mat4::IDENTITY,
-                            transform: GlobalTransform::IDENTITY,
+                            projection: shadow_map_config.get_proj_mat(light.range * 2.),
+                            transform: *transform,
                             view_projection: None,
                             hdr: false,
                             viewport: UVec4::ZERO,

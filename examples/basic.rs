@@ -1,11 +1,12 @@
 use bevy::{
-    app::{App, Startup},
+    app::{App, PluginGroup, Startup},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::system::Commands,
     math::Vec2,
-    render::color::Color,
+    render::{color::Color, view::Msaa},
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
+    window::{PresentMode, Window, WindowPlugin, WindowResolution},
     DefaultPlugins,
 };
 use bevy_incandescent::{
@@ -15,7 +16,10 @@ use bevy_incandescent::{
     },
     IncandescentPlugin,
 };
-use rand::Rng;
+use helpers::HelpersPlugin;
+use rand::{rngs::StdRng, Rng, SeedableRng};
+
+mod helpers;
 
 const OBSTALCE_AREA: Vec2 = Vec2 { x: 900., y: 600. };
 const OBSTACLE_SIZE_MIN: Vec2 = Vec2 { x: 50., y: 50. };
@@ -23,8 +27,23 @@ const OBSTACLE_SIZE_MAX: Vec2 = Vec2 { x: 200., y: 200. };
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, IncandescentPlugin))
+        .add_plugins((
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    // resolution: WindowResolution::new(1280., 720.),
+                    resolution: WindowResolution::new(512., 512.),
+                    present_mode: PresentMode::Immediate,
+                    resizable: false,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            IncandescentPlugin,
+            HelpersPlugin { inspector: false },
+        ))
         .add_systems(Startup, setup)
+        // MSAA is not supported yet
+        .insert_resource(Msaa::Off)
         .run();
 }
 
@@ -34,7 +53,8 @@ fn setup(mut commands: Commands) {
         ShadowRenderedCameraBundle::default(),
     ));
 
-    let mut rd = rand::thread_rng();
+    let mut rd = StdRng::seed_from_u64(1);
+    // let mut rd = StdRng::from_entropy();
     for _ in 0..10 {
         commands.spawn((
             SpriteBundle {
@@ -59,8 +79,8 @@ fn setup(mut commands: Commands) {
         point_light: PointLight2d {
             color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
             intensity: 1000.,
-            range: 1000.,
-            radius: 100.,
+            range: 200.,
+            radius: 50.,
         },
         ..Default::default()
     });
