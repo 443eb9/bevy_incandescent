@@ -13,16 +13,16 @@ use bevy::{
 use crate::{
     ecs::light::ShadowLayers,
     render::{
-        graph::{Shadow2dMainPass, Shadow2dReductionNode},
+        graph::{Shadow2dMainPass, Shadow2dPrepassNode, Shadow2dReductionNode},
         resource::GpuMetaBuffers,
     },
 };
 
 use self::{
-    graph::{Shadow2dMeshPassNode, Shadow2dNode, Shadow2dPrepassNode},
+    graph::{Shadow2dDistortPassNode, Shadow2dMeshPassNode, Shadow2dNode},
     pipeline::{
-        Shadow2dDebugDisplayPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
-        Shadow2dReductionPipeline,
+        Shadow2dDebugDisplayPipeline, Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline,
+        Shadow2dPrepassPipeline, Shadow2dReductionPipeline,
     },
     resource::{GpuLights2d, ShadowMap2dConfig, ShadowMap2dStorage},
 };
@@ -37,6 +37,7 @@ pub mod visibility;
 pub const DEFAULT_SHADOW_CASTER_LAYER: ShadowLayers = ShadowLayers(RenderLayers::layer(31));
 pub const SHADOW_TYPES: Handle<Shader> = Handle::weak_from_u128(1123087897454135486384145234748455);
 pub const SHADOW_DEBUG_DISPLAY_SHADER: Handle<Shader> = Handle::weak_from_u128(4518564135421563415);
+pub const SHADOW_DISTORT_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13745315343641643643);
 pub const SHADOW_PREPASS_SHADER: Handle<Shader> = Handle::weak_from_u128(5321368413218521485631341);
 pub const SHADOW_REDUCTION_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(485648964891315351);
 pub const SHADOW_MAIN_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13643651896413518964153);
@@ -57,6 +58,13 @@ impl Plugin for IncandescentRenderPlugin {
             app,
             SHADOW_DEBUG_DISPLAY_SHADER,
             "shaders/shadow_2d_debug_display.wgsl",
+            Shader::from_wgsl
+        );
+
+        load_internal_asset!(
+            app,
+            SHADOW_DISTORT_PASS_SHADER,
+            "shaders/shadow_2d_distort_pass.wgsl",
             Shader::from_wgsl
         );
 
@@ -100,6 +108,10 @@ impl Plugin for IncandescentRenderPlugin {
             // )
             .add_render_graph_node::<Shadow2dMeshPassNode>(Core2d, Shadow2dNode::Shadow2dMeshPass)
             .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, Shadow2dNode::Shadow2dPrepass)
+            .add_render_graph_node::<Shadow2dDistortPassNode>(
+                Core2d,
+                Shadow2dNode::Shadow2dDistortPass,
+            )
             .add_render_graph_node::<Shadow2dReductionNode>(
                 Core2d,
                 Shadow2dNode::Shadow2dReductionPass,
@@ -112,6 +124,7 @@ impl Plugin for IncandescentRenderPlugin {
                     Shadow2dNode::Shadow2dMeshPass,
                     // Shadow2dNode::Shadow2dDebugDisplayPass,
                     Shadow2dNode::Shadow2dPrepass,
+                    Shadow2dNode::Shadow2dDistortPass,
                     Shadow2dNode::Shadow2dReductionPass,
                     Shadow2dNode::Shadow2dMainPass,
                     Node2d::Bloom,
@@ -127,6 +140,7 @@ impl Plugin for IncandescentRenderPlugin {
         render_app
             .init_resource::<Shadow2dDebugDisplayPipeline>()
             .init_resource::<Shadow2dPrepassPipeline>()
+            .init_resource::<Shadow2dDistortPassPipeline>()
             .init_resource::<Shadow2dReductionPipeline>()
             .init_resource::<Shadow2dMainPassPipeline>()
             .init_resource::<GpuLights2d>()

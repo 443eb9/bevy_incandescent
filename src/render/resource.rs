@@ -7,9 +7,9 @@ use bevy::{
     render::{
         render_resource::{
             AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
-            GpuArrayBuffer, SamplerDescriptor, ShaderType, Texture, TextureAspect,
-            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
-            TextureViewDescriptor, TextureViewDimension,
+            GpuArrayBuffer, SamplerDescriptor, ShaderType, TextureAspect, TextureDescriptor,
+            TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+            TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::GpuImage,
@@ -23,45 +23,26 @@ use super::{
 
 #[derive(ShaderType, Clone)]
 pub struct GpuPointLight2d {
-    pub world_position: Vec4,
+    pub min_world_pos: Vec4,
+    pub max_world_pos: Vec4,
     pub color: Vec4,
 }
 
 impl GpuPointLight2d {
     pub fn new(light_transform: &GlobalTransform, light: &ExtractedPointLight2d) -> Self {
+        let center_world_pos = light_transform.translation();
+        let light_area = Vec2::splat(light.range).extend(0.);
+
         Self {
-            world_position: light_transform.translation().extend(1.),
+            min_world_pos: (center_world_pos - light_area).extend(1.),
+            max_world_pos: (center_world_pos + light_area).extend(1.),
             color: light.color.rgba_to_vec4(),
-        }
-    }
-}
-
-#[derive(ShaderType, Clone)]
-pub struct GpuShadowView2d {
-    pub view: Mat4,
-    pub projection: Mat4,
-}
-
-impl GpuShadowView2d {
-    pub fn new(light_transform: &GlobalTransform, shadow_map_config: &ShadowMap2dConfig) -> Self {
-        let size = shadow_map_config.size as f32;
-        Self {
-            view: light_transform.compute_matrix(),
-            projection: Mat4::orthographic_rh(
-                -size,
-                size,
-                -size,
-                size,
-                shadow_map_config.near,
-                shadow_map_config.far,
-            ),
         }
     }
 }
 
 #[derive(Resource)]
 pub struct GpuLights2d {
-    views: GpuArrayBuffer<GpuShadowView2d>,
     point_lights: GpuArrayBuffer<GpuPointLight2d>,
 }
 
@@ -69,7 +50,6 @@ impl FromWorld for GpuLights2d {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
         Self {
-            views: GpuArrayBuffer::new(&render_device),
             point_lights: GpuArrayBuffer::new(&render_device),
         }
     }
@@ -77,14 +57,8 @@ impl FromWorld for GpuLights2d {
 
 impl GpuLights2d {
     #[inline]
-    pub fn add_point_light(&mut self, view: GpuShadowView2d, light: GpuPointLight2d) {
-        self.views.push(view);
+    pub fn add_point_light(&mut self, light: GpuPointLight2d) {
         self.point_lights.push(light);
-    }
-
-    #[inline]
-    pub fn shadow_views_binding(&self) -> BindingResource {
-        self.views.binding().unwrap()
     }
 
     #[inline]
@@ -94,13 +68,11 @@ impl GpuLights2d {
 
     #[inline]
     pub fn clear(&mut self) {
-        self.views.clear();
         self.point_lights.clear();
     }
 
     #[inline]
     pub fn write_buffers(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        self.views.write_buffer(render_device, render_queue);
         self.point_lights.write_buffer(render_device, render_queue);
     }
 }
@@ -224,15 +196,15 @@ impl ShadowMap2dStorage {
             z: 1,
         };
         self.work_group_count_total = UVec3 {
-            x: self.work_group_count_per_light.x * meta.size,
-            y: self.work_group_count_per_light.y * meta.size,
+            x: self.work_group_count_per_light.x,
+            y: self.work_group_count_per_light.y,
             z: meta.count,
         };
         self.num_reductions = meta.size.trailing_zeros();
-        // self.num_reductions = 5;
+        // self.num_reductions = 1;
 
         // assert_eq!(
-        //     2u32.pow(self.reduction_time),
+        //     2u32.pow(self.num_reductions),
         //     self.meta.size,
         //     "Shadow map size must be a power of 2!"
         // );
@@ -253,11 +225,10 @@ impl ShadowMap2dStorage {
     #[inline]
     pub fn final_texture_view(&self) -> &TextureView {
         if self.num_reductions % 2 == 0 {
-            self.texture_view_primary()
-        } else {
             self.texture_view_secondary()
+        } else {
+            self.texture_view_primary()
         }
-        // self.texture_view_primary()
     }
 
     #[inline]

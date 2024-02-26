@@ -3,7 +3,7 @@ use bevy::{
     core_pipeline::core_2d::Camera2dBundle,
     ecs::system::Commands,
     math::Vec2,
-    render::{color::Color, view::Msaa},
+    render::{color::Color, view::{Msaa, NoFrustumCulling}},
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
     window::{PresentMode, Window, WindowPlugin, WindowResolution},
@@ -30,9 +30,9 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    // resolution: WindowResolution::new(1280., 720.),
-                    // resolution: WindowResolution::new((512 >> 8) as f32, 512.),
-                    resolution: WindowResolution::new(512., 512.),
+                    resolution: WindowResolution::new(1280., 720.),
+                    // resolution: WindowResolution::new((512 >> 1) as f32, 512.),
+                    // resolution: WindowResolution::new(512., 512.),
                     present_mode: PresentMode::Immediate,
                     resizable: false,
                     ..Default::default()
@@ -40,7 +40,7 @@ fn main() {
                 ..Default::default()
             }),
             IncandescentPlugin,
-            // HelpersPlugin { inspector: false },
+            HelpersPlugin { inspector: false },
         ))
         .add_systems(Startup, setup)
         // MSAA is not supported yet
@@ -72,6 +72,7 @@ fn setup(mut commands: Commands) {
                 ),
                 ..Default::default()
             },
+            NoFrustumCulling,
             ShadowCaster2dBundle::default(),
         ));
     }
@@ -83,6 +84,18 @@ fn setup(mut commands: Commands) {
             range: 200.,
             radius: 50.,
         },
+        transform: Transform::from_xyz(50., 25., 0.),
         ..Default::default()
     });
+
+    // commands.spawn(PointLight2dBundle {
+    //     point_light: PointLight2d {
+    //         color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
+    //         intensity: 2000.,
+    //         range: 250.,
+    //         radius: 30.,
+    //     },
+    //     transform: Transform::from_xyz(-50., -25., 0.),
+    //     ..Default::default()
+    // });
 }

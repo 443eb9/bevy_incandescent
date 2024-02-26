@@ -22,14 +22,14 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
         return;
     }
 
-    let color = max(
+    let color = min(
         textureLoad(source_shadow_map, px, light_index),
         textureLoad(source_shadow_map, vec2u(px.x + 1, px.y), light_index),
     );
 
     textureStore(
         dest_shadow_map,
-        vec2u(invocation_id.x >> 1, px.y),
+        vec2u(px.x >> 1, px.y),
         light_index,
         color,
     );

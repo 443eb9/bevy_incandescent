@@ -14,15 +14,16 @@ use bevy::{
         },
         renderer::RenderDevice,
         texture::BevyDefault,
+        view::ViewUniform,
     },
 };
 
 use bevy::render::render_resource::binding_types as binding;
 
 use super::{
-    resource::{GpuPointLight2d, GpuShadowMapMeta, GpuShadowView2d},
-    SHADOW_DEBUG_DISPLAY_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_PREPASS_SHADER,
-    SHADOW_REDUCTION_PASS_SHADER,
+    resource::{GpuPointLight2d, GpuShadowMapMeta},
+    SHADOW_DEBUG_DISPLAY_SHADER, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
+    SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
 };
 
 #[derive(Resource)]
@@ -129,6 +130,55 @@ impl FromWorld for Shadow2dPrepassPipeline {
 }
 
 #[derive(Resource)]
+pub struct Shadow2dDistortPassPipeline {
+    pub cached_id: CachedComputePipelineId,
+    pub distort_pass_layout: BindGroupLayout,
+}
+
+impl FromWorld for Shadow2dDistortPassPipeline {
+    fn from_world(world: &mut World) -> Self {
+        let render_device = world.resource::<RenderDevice>();
+
+        let distort_layout = render_device.create_bind_group_layout(
+            "shadow_2d_distort_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::COMPUTE,
+                (
+                    // Source shadow map
+                    binding::texture_storage_2d_array(
+                        TextureFormat::Rg32Float,
+                        StorageTextureAccess::ReadOnly,
+                    ),
+                    // Destination shadow map
+                    binding::texture_storage_2d_array(
+                        TextureFormat::Rg32Float,
+                        StorageTextureAccess::WriteOnly,
+                    ),
+                    // Shadow map meta
+                    binding::uniform_buffer::<GpuShadowMapMeta>(false),
+                ),
+            ),
+        );
+
+        let cached_id = world
+            .resource_mut::<PipelineCache>()
+            .queue_compute_pipeline(ComputePipelineDescriptor {
+                label: Some("shadow_2d_distort_pipeline".into()),
+                layout: vec![distort_layout.clone()],
+                push_constant_ranges: vec![],
+                shader: SHADOW_DISTORT_PASS_SHADER,
+                shader_defs: vec![],
+                entry_point: "main".into(),
+            });
+
+        Self {
+            cached_id,
+            distort_pass_layout: distort_layout,
+        }
+    }
+}
+
+#[derive(Resource)]
 pub struct Shadow2dReductionPipeline {
     pub cached_id: CachedComputePipelineId,
     pub reduction_layout: BindGroupLayout,
@@ -203,10 +253,12 @@ impl FromWorld for Shadow2dMainPassPipeline {
                         TextureFormat::Rg32Float,
                         StorageTextureAccess::ReadOnly,
                     ),
-                    // Point lights
-                    binding::storage_buffer::<Vec<GpuPointLight2d>>(false),
                     // Shadow views
-                    binding::storage_buffer::<Vec<GpuShadowView2d>>(false),
+                    binding::uniform_buffer::<ViewUniform>(true),
+                    // Shadow map meta
+                    binding::uniform_buffer::<GpuShadowMapMeta>(false),
+                    // Point lights
+                    binding::storage_buffer_read_only::<Vec<GpuPointLight2d>>(false),
                 ),
             ),
         );

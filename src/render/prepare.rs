@@ -30,8 +30,8 @@ use crate::{
 use super::{
     extract::ExtractedPointLight2d,
     resource::{
-        GpuLights2d, GpuMetaBuffers, GpuPointLight2d, GpuShadowView2d, ShadowMap2dConfig,
-        ShadowMap2dMeta, ShadowMap2dStorage,
+        GpuLights2d, GpuMetaBuffers, GpuPointLight2d, ShadowMap2dConfig, ShadowMap2dMeta,
+        ShadowMap2dStorage,
     },
 };
 
@@ -75,10 +75,7 @@ pub fn prepare_lights(
     gpu_meta_buffers.clear();
 
     for (light_index, (light_entity, light, transform)) in point_lights.iter_mut().enumerate() {
-        let uniform_indices = gpu_lights.add_point_light(
-            GpuShadowView2d::new(transform, &shadow_map_config),
-            GpuPointLight2d::new(transform, light),
-        );
+        let uniform_indices = gpu_lights.add_point_light(GpuPointLight2d::new(transform, light));
 
         let meta_index = gpu_meta_buffers.push_light_meta(GpuShadowMapMeta {
             index: light_index as u32,
@@ -92,7 +89,7 @@ pub fn prepare_lights(
                 size: Extent3d {
                     width: shadow_map_config.size,
                     height: shadow_map_config.size,
-                    depth_or_array_layers: (point_light_count as u32).max(1),
+                    depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
                 sample_count: 1,
