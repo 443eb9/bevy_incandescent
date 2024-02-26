@@ -31,6 +31,7 @@ fn main() {
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     // resolution: WindowResolution::new(1280., 720.),
+                    // resolution: WindowResolution::new((512 >> 8) as f32, 512.),
                     resolution: WindowResolution::new(512., 512.),
                     present_mode: PresentMode::Immediate,
                     resizable: false,
@@ -39,7 +40,7 @@ fn main() {
                 ..Default::default()
             }),
             IncandescentPlugin,
-            HelpersPlugin { inspector: false },
+            // HelpersPlugin { inspector: false },
         ))
         .add_systems(Startup, setup)
         // MSAA is not supported yet

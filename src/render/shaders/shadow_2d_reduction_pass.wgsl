@@ -14,22 +14,22 @@ var<uniform> reduction_time: u32;
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
-    let px = invocation_id.xy;
+    let px = vec2u(invocation_id.x << 1, invocation_id.y);
     let size = shadow_map_meta.size;
     let light_index = invocation_id.z;
 
-    if px.x >= size >> (reduction_time - 1u) || px.y >= size {
+    if px.x >= size >> (reduction_time - 1) || px.y >= size {
         return;
     }
 
-    let color = min(
+    let color = max(
         textureLoad(source_shadow_map, px, light_index),
         textureLoad(source_shadow_map, vec2u(px.x + 1, px.y), light_index),
     );
 
     textureStore(
         dest_shadow_map,
-        vec2u(px.x >> reduction_time, px.y),
+        vec2u(invocation_id.x >> 1, px.y),
         light_index,
         color,
     );

@@ -308,7 +308,7 @@ impl Node for Shadow2dReductionNode {
         );
         let bind_groups = [&bind_group_primary_source, &bind_group_secondary_source];
 
-        for t in 0..shadow_map_storage.reduction_time() as usize {
+        for t in 0..shadow_map_storage.num_reductions() as usize {
             let mut compute_pass =
                 render_context
                     .command_encoder()
@@ -316,7 +316,7 @@ impl Node for Shadow2dReductionNode {
                         label: Some("shadow_2d_reduction_pass"),
                         timestamp_writes: None,
                     });
-            let offset = gpu_meta_buffers.get_reduction_time_index(t as u32);
+            let offset = gpu_meta_buffers.get_reduction_index(t as u32);
 
             compute_pass.set_pipeline(compute_pipeline);
             compute_pass.set_bind_group(0, bind_groups[t % 2], &[offset]);
@@ -383,7 +383,7 @@ impl Node for Shadow2dMainPass {
             &BindGroupEntries::sequential((
                 post_process.source,
                 &pipeline.main_texture_sampler,
-                shadow_map_storage.texture_view_secondary(),
+                shadow_map_storage.final_texture_view(),
                 gpu_lights.point_lights_binding(),
                 gpu_lights.shadow_views_binding(),
             )),
