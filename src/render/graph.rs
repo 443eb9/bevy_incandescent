@@ -373,6 +373,7 @@ pub struct Shadow2dMainPass {
         Read<ViewTarget>,
         Read<VisibleLight2dEntities>,
         Read<ViewUniformOffset>,
+        Read<GpuLights2d>,
     )>,
     light_view_query: QueryState<Read<ShadowView2d>>,
 }
@@ -400,7 +401,7 @@ impl Node for Shadow2dMainPass {
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let main_view_entity = graph.view_entity();
-        let Ok((view_target, VisibleLight2dEntities(_), main_view_offset)) =
+        let Ok((view_target, VisibleLight2dEntities(_), main_view_offset, gpu_lights)) =
             self.main_view_query.get_manual(world, main_view_entity)
         else {
             return Ok(());
@@ -416,7 +417,6 @@ impl Node for Shadow2dMainPass {
 
         let post_process = view_target.post_process_write();
         let shadow_map_storage = world.resource::<ShadowMap2dStorage>();
-        let gpu_lights = world.resource::<GpuLights2d>();
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
         let view_uniforms = world.resource::<ViewUniforms>();
 

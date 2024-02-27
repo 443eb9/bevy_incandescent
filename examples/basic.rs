@@ -40,7 +40,7 @@ fn main() {
                 ..Default::default()
             }),
             IncandescentPlugin,
-            HelpersPlugin { inspector: false },
+            HelpersPlugin { inspector: true },
         ))
         .add_systems(Startup, setup)
         // MSAA is not supported yet
@@ -88,14 +88,14 @@ fn setup(mut commands: Commands) {
         ..Default::default()
     });
 
-    // commands.spawn(PointLight2dBundle {
-    //     point_light: PointLight2d {
-    //         color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-    //         intensity: 2000.,
-    //         range: 250.,
-    //         radius: 30.,
-    //     },
-    //     transform: Transform::from_xyz(-50., -25., 0.),
-    //     ..Default::default()
-    // });
+    commands.spawn(PointLight2dBundle {
+        point_light: PointLight2d {
+            color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
+            intensity: 2000.,
+            range: 250.,
+            radius: 30.,
+        },
+        transform: Transform::from_xyz(-50., -25., 0.),
+        ..Default::default()
+    });
 }

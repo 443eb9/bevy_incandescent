@@ -98,8 +98,17 @@ impl Plugin for IncandescentRenderPlugin {
             .init_resource::<GpuMetaBuffers>();
 
         render_app
-            .add_systems(ExtractSchedule, extract::extract_point_lights)
-            .add_systems(Render, prepare::prepare_lights.in_set(RenderSet::Prepare));
+            .add_systems(
+                ExtractSchedule,
+                (
+                    extract::extract_point_lights,
+                    extract::extract_shadow_cameras,
+                ),
+            )
+            .add_systems(
+                Render,
+                (prepare::prepare_lights, prepare::prepare_view_lights).in_set(RenderSet::Prepare),
+            );
 
         render_app
             // .add_render_graph_node::<Shadow2dDebugDisplayPassNode>(
@@ -143,7 +152,6 @@ impl Plugin for IncandescentRenderPlugin {
             .init_resource::<Shadow2dDistortPassPipeline>()
             .init_resource::<Shadow2dReductionPipeline>()
             .init_resource::<Shadow2dMainPassPipeline>()
-            .init_resource::<GpuLights2d>()
             .init_resource::<ShadowMap2dStorage>();
     }
 }

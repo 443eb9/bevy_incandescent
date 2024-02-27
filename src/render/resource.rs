@@ -1,5 +1,6 @@
 use bevy::{
     ecs::{
+        component::Component,
         system::Resource,
         world::{FromWorld, World},
     },
@@ -23,39 +24,27 @@ use super::{
 
 #[derive(ShaderType, Clone)]
 pub struct GpuPointLight2d {
-    pub min_world_pos: Vec4,
-    pub max_world_pos: Vec4,
+    pub position_ndc: Vec2,
+    pub range_ndc: Vec2,
+    pub radius_ndc: Vec2,
     pub color: Vec4,
 }
 
-impl GpuPointLight2d {
-    pub fn new(light_transform: &GlobalTransform, light: &ExtractedPointLight2d) -> Self {
-        let center_world_pos = light_transform.translation();
-        let light_area = Vec2::splat(light.range).extend(0.);
+impl GpuPointLight2d {}
 
-        Self {
-            min_world_pos: (center_world_pos - light_area).extend(1.),
-            max_world_pos: (center_world_pos + light_area).extend(1.),
-            color: light.color.rgba_to_vec4(),
-        }
-    }
-}
-
-#[derive(Resource)]
+#[derive(Component)]
 pub struct GpuLights2d {
     point_lights: GpuArrayBuffer<GpuPointLight2d>,
 }
 
-impl FromWorld for GpuLights2d {
-    fn from_world(world: &mut World) -> Self {
-        let render_device = world.resource::<RenderDevice>();
+impl GpuLights2d {
+    #[inline]
+    pub fn new(render_device: &RenderDevice) -> Self {
         Self {
-            point_lights: GpuArrayBuffer::new(&render_device),
+            point_lights: GpuArrayBuffer::new(render_device),
         }
     }
-}
 
-impl GpuLights2d {
     #[inline]
     pub fn add_point_light(&mut self, light: GpuPointLight2d) {
         self.point_lights.push(light);

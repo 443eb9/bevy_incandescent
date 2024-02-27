@@ -24,7 +24,7 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
 
     textureStore(
         shadow_map,
-        px,
+        vec2u(px.x, shadow_map_meta.size - px.y - 1),
         shadow_map_meta.index,
         vec4f(d, 0., 0., 0.),
     );

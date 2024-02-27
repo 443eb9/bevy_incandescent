@@ -37,6 +37,10 @@ bevy_mod_debugdump = "0.10.0"
 bevy-inspector-egui = "0.23.2"
 rand = "0.8"
 
+[features]
+default = []
+debug = []
+
 # [patch.crates-io]
 # bevy = { path = "../bevy" }
 

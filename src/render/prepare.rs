@@ -7,6 +7,7 @@ use bevy::{
         query::With,
         system::{Commands, Query, Res, ResMut},
     },
+    math::{Vec2, Vec3Swizzles, Vec4, Vec4Swizzles},
     render::{
         color::Color,
         render_resource::{
@@ -14,14 +15,14 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, ColorAttachment, TextureCache},
-        view::{Msaa, ViewTarget},
+        view::{ExtractedView, Msaa, ViewTarget},
     },
     transform::components::GlobalTransform,
 };
 
 use crate::{
     ecs::{
-        camera::ShadowCameraDriver,
+        camera::{ShadowCamera, ShadowCameraDriver},
         light::{ShadowView2d, VisibleLight2dEntities},
     },
     render::resource::GpuShadowMapMeta,
@@ -59,11 +60,10 @@ pub fn prepare_lights(
     mut commands: Commands,
     mut texture_cache: ResMut<TextureCache>,
     main_views: Query<Entity, With<ViewTarget>>,
-    mut point_lights: Query<(Entity, &ExtractedPointLight2d, &GlobalTransform)>,
+    mut point_lights: Query<Entity, With<ExtractedPointLight2d>>,
     shadow_map_config: Res<ShadowMap2dConfig>,
     mut shadow_map_storage: ResMut<ShadowMap2dStorage>,
     mut gpu_meta_buffers: ResMut<GpuMetaBuffers>,
-    mut gpu_lights: ResMut<GpuLights2d>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     msaa: Res<Msaa>,
@@ -71,12 +71,9 @@ pub fn prepare_lights(
     assert_eq!(*msaa, Msaa::Off, "MSAA is not supported yet!");
 
     let point_light_count = point_lights.iter().count();
-    gpu_lights.clear();
     gpu_meta_buffers.clear();
 
-    for (light_index, (light_entity, light, transform)) in point_lights.iter_mut().enumerate() {
-        let uniform_indices = gpu_lights.add_point_light(GpuPointLight2d::new(transform, light));
-
+    for (light_index, light_entity) in point_lights.iter_mut().enumerate() {
         let meta_index = gpu_meta_buffers.push_light_meta(GpuShadowMapMeta {
             index: light_index as u32,
             size: shadow_map_config.size,
@@ -110,7 +107,7 @@ pub fn prepare_lights(
 
         commands
             .entity(light_entity)
-            .insert((uniform_indices, meta_index, shadow_view));
+            .insert((meta_index, shadow_view));
     }
 
     shadow_map_storage.try_update(
@@ -123,13 +120,62 @@ pub fn prepare_lights(
     );
 
     gpu_meta_buffers.write_buffers(&render_device, &render_queue);
-    gpu_lights.write_buffers(&render_device, &render_queue);
 
     if let Some(shadow_camera) = main_views.iter().next() {
         // TODO add visible lights to all cameras
-        commands.entity(shadow_camera).insert((
-            VisibleLight2dEntities(point_lights.iter().map(|(e, ..)| e).collect::<Vec<_>>()),
-            ShadowCameraDriver,
-        ));
+        commands.entity(shadow_camera).insert(ShadowCameraDriver);
+    }
+}
+
+pub fn prepare_view_lights(
+    mut commands: Commands,
+    main_views: Query<
+        (
+            Entity,
+            &ExtractedView,
+            &VisibleLight2dEntities,
+            &ShadowCamera,
+        ),
+        With<ViewTarget>,
+    >,
+    lights_query: Query<(&ExtractedPointLight2d, &GlobalTransform)>,
+    render_device: Res<RenderDevice>,
+    render_queue: Res<RenderQueue>,
+) {
+    for (main_view_entity, main_view, visible_lights, shadow_camera) in &main_views {
+        let mut buffer = GpuLights2d::new(&render_device);
+
+        for visible_light in visible_lights.0.iter().copied() {
+            let Ok((light, light_transform)) = lights_query.get(visible_light) else {
+                continue;
+            };
+
+            let view_proj = main_view
+                .view_projection
+                .unwrap_or(main_view.projection * main_view.transform.compute_matrix().inverse());
+            let position_ndc = (view_proj * light_transform.translation().extend(1.)).xy();
+            let position_ws = light_transform.translation().xy();
+            let min_position = position_ws - Vec2::splat(light.range);
+            let max_position = position_ws + Vec2::splat(light.range);
+            let min_ndc = (view_proj * min_position.extend(0.).extend(1.)).xy();
+            let max_ndc = (view_proj * max_position.extend(0.).extend(1.)).xy();
+            let range_ndc = max_ndc - min_ndc;
+
+            buffer.add_point_light(GpuPointLight2d {
+                position_ndc,
+                range_ndc,
+                radius_ndc: range_ndc * light.radius / light.range,
+                color: light.color.rgba_to_vec4(),
+            });
+
+            // println!(
+            //     "pos_ndc {:?} range_ndc {:?}",
+            //     position_ndc,
+            //     max_ndc - min_ndc
+            // );
+        }
+
+        buffer.write_buffers(&render_device, &render_queue);
+        commands.entity(main_view_entity).insert(buffer);
     }
 }

@@ -3,19 +3,24 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
+        query::With,
         system::{Commands, Query, Res},
     },
     math::UVec4,
     render::{
+        camera::OrthographicProjection,
         color::Color,
         render_phase::RenderPhase,
-        view::{ColorGrading, ExtractedView, VisibleEntities},
+        view::{ColorGrading, ExtractedView, ViewTarget, VisibleEntities},
         Extract,
     },
     transform::components::GlobalTransform,
 };
 
-use crate::ecs::light::{PointLight2d, ShadowCaster2dVisibility};
+use crate::ecs::{
+    camera::ShadowCamera,
+    light::{PointLight2d, ShadowCaster2dVisibility, VisibleLight2dEntities},
+};
 
 use super::resource::ShadowMap2dConfig;
 
@@ -71,4 +76,20 @@ pub fn extract_point_lights(
             })
             .collect::<Vec<_>>(),
     );
+}
+
+pub fn extract_shadow_cameras(
+    mut commands: Commands,
+    main_views: Extract<Query<(Entity, &OrthographicProjection)>>,
+    // TODO visibility check
+    lights_query: Extract<Query<Entity, With<PointLight2d>>>,
+) {
+    for (main_view_entity, main_view_proj) in &main_views {
+        commands.get_or_spawn(main_view_entity).insert((
+            VisibleLight2dEntities(lights_query.iter().collect()),
+            ShadowCamera {
+                proj_size: main_view_proj.area.size(),
+            },
+        ));
+    }
 }

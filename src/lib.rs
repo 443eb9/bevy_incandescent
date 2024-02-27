@@ -1,4 +1,5 @@
 use bevy::app::{App, Plugin};
+use ecs::IncandescentECSPlugin;
 use render::IncandescentRenderPlugin;
 
 pub mod debug;
@@ -9,6 +10,11 @@ pub struct IncandescentPlugin;
 
 impl Plugin for IncandescentPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((IncandescentRenderPlugin, debug::IncandescentDebugPlugin));
+        app.add_plugins((
+            IncandescentRenderPlugin,
+            IncandescentECSPlugin,
+            #[cfg(feature = "debug")]
+            debug::IncandescentDebugPlugin,
+        ));
     }
 }

@@ -3,8 +3,9 @@
 #import bevy_incandescent::shadow_2d_types::ShadowMapMeta
 
 struct PointLight {
-    min_world_pos: vec4f,
-    max_world_pos: vec4f,
+    position_ndc: vec2f,
+    range_ndc: vec2f,
+    radius_ndc: vec2f,
     color: vec4f,
 }
 
@@ -38,6 +39,11 @@ fn get_caster_distance_v(sample_ndc: vec2f, i_light: u32) -> f32 {
     return textureLoad(shadow_map, vec2i(px), i_light).g;
 }
 
+fn is_inside(p: vec2f, o: vec2f, a: f32, b: f32) -> bool {
+    let p0 = p - o;
+    return p0.x * p0.x / a / a + p0.y * p0.y / b / b < 1.;
+}
+
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
     // let scale = 512u >> 8u;
@@ -53,24 +59,51 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
     // return vec4f(f32(arrayLength(point_lights)), 1., 1., 1.);
     // return point_lights[1].color;
 
-    var color = textureSample(main_tex, main_tex_sampler, in.uv);
-    let aspect = main_view.projection[1][1] / main_view.projection[0][0];
-    var uv_ndc = in.uv * 2. - 1.;
-    uv_ndc.y = -uv_ndc.y;
+    // var color = textureSample(main_tex, main_tex_sampler, in.uv);
+    // let aspect = main_view.projection[1][1] / main_view.projection[0][0];
+    // var uv_ndc = in.uv * 2. - 1.;
+    // uv_ndc.y = -uv_ndc.y;
 
+    // for (var i_light: u32 = 0; i_light < arrayLength(&point_lights); i_light++) {
+    //     let light = &point_lights[i_light];
+    //     // Orthographic projection, no need to divide by w
+    //     var min_ndc_pos = (main_view.view_proj * (*light).min_world_pos).xy;
+    //     var max_ndc_pos = (main_view.view_proj * (*light).max_world_pos).xy;
+    //     let area = max_ndc_pos - min_ndc_pos;
+
+    //     if min_ndc_pos.x < uv_ndc.x && max_ndc_pos.x > uv_ndc.x
+    //        && min_ndc_pos.y < uv_ndc.y && max_ndc_pos.y > uv_ndc.y {
+
+    //         let light_ndc = (min_ndc_pos + max_ndc_pos) / 2.;
+    //         var sample_ndc = (uv_ndc - light_ndc) / area / 2.;
+    //         sample_ndc.y = -sample_ndc.y;
+
+    //         var caster_dist = 0.;
+    //         if abs(sample_ndc.y) < abs(sample_ndc.x) {
+    //             caster_dist = get_caster_distance_h(sample_ndc, i_light);
+    //         } else {
+    //             caster_dist = get_caster_distance_v(sample_ndc, i_light);
+    //         }
+
+    //         if caster_dist > length(sample_ndc) {
+    //             color += (*light).color;
+    //         }
+    //     }
+    // }
+
+    // return color;
+
+    var ndc = in.uv * 2. - 1.;
+    ndc.y = -ndc.y;
+
+    var color = textureSample(main_tex, main_tex_sampler, in.uv);
     for (var i_light: u32 = 0; i_light < arrayLength(&point_lights); i_light++) {
         let light = &point_lights[i_light];
-        // Orthographic projection, no need to divide by w
-        var min_ndc_pos = (main_view.view_proj * (*light).min_world_pos).xy;
-        var max_ndc_pos = (main_view.view_proj * (*light).max_world_pos).xy;
-        let area = max_ndc_pos - min_ndc_pos;
+        let half_range = (*light).range_ndc / 2.;
 
-        if min_ndc_pos.x < uv_ndc.x && max_ndc_pos.x > uv_ndc.x
-           && min_ndc_pos.y < uv_ndc.y && max_ndc_pos.y > uv_ndc.y {
-
-            let light_ndc = (min_ndc_pos + max_ndc_pos) / 2.;
-            var sample_ndc = (uv_ndc - light_ndc) / area / 2.;
-            sample_ndc.y = -sample_ndc.y;
+        if is_inside(ndc, (*light).position_ndc, half_range.x, half_range.y) {
+            let rel_ndc = ndc - (*light).position_ndc;
+            let sample_ndc = rel_ndc / (*light).range_ndc / 2.;
 
             var caster_dist = 0.;
             if abs(sample_ndc.y) < abs(sample_ndc.x) {
@@ -80,7 +113,11 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
             }
 
             if caster_dist > length(sample_ndc) {
-                color += (*light).color;
+                var atten = 1.;
+                if !is_inside(ndc, (*light).position_ndc, (*light).radius_ndc.x, (*light).radius_ndc.y) {
+                    atten -= length(rel_ndc / half_range);
+                }
+                color += (*light).color * atten;
             }
         }
     }

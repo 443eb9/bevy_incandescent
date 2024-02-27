@@ -7,5 +7,11 @@ pub mod light;
 pub struct IncandescentECSPlugin;
 
 impl Plugin for IncandescentECSPlugin {
-    fn build(&self, _app: &mut App) {}
+    fn build(&self, app: &mut App) {
+        #[cfg(feature = "debug")]
+        {
+            use light::*;
+            app.register_type::<PointLight2d>();
+        }
+    }
 }
