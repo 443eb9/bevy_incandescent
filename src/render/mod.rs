@@ -1,5 +1,5 @@
 use bevy::{
-    app::{App, Plugin},
+    app::{App, Plugin, Update},
     asset::{load_internal_asset, Handle},
     core_pipeline::core_2d::graph::{Core2d, Node2d},
     ecs::schedule::IntoSystemConfigs,
@@ -88,6 +88,8 @@ impl Plugin for IncandescentRenderPlugin {
             "shaders/shadow_2d_main_pass.wgsl",
             Shader::from_wgsl
         );
+
+        app.add_systems(Update, visibility::calc_light_bounds);
 
         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;

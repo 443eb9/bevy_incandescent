@@ -11,7 +11,8 @@ impl Plugin for IncandescentECSPlugin {
         #[cfg(feature = "debug")]
         {
             use light::*;
-            app.register_type::<PointLight2d>();
+            app.register_type::<PointLight2d>()
+                .register_type::<VisibleLight2dEntities>();
         }
     }
 }

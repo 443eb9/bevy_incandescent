@@ -22,7 +22,7 @@ use bevy::{
 
 use crate::{
     ecs::{
-        camera::{ShadowCamera, ShadowCameraDriver},
+        camera::ShadowCameraDriver,
         light::{ShadowView2d, VisibleLight2dEntities},
     },
     render::resource::GpuShadowMapMeta,
@@ -129,20 +129,12 @@ pub fn prepare_lights(
 
 pub fn prepare_view_lights(
     mut commands: Commands,
-    main_views: Query<
-        (
-            Entity,
-            &ExtractedView,
-            &VisibleLight2dEntities,
-            &ShadowCamera,
-        ),
-        With<ViewTarget>,
-    >,
+    main_views: Query<(Entity, &ExtractedView, &VisibleLight2dEntities), With<ViewTarget>>,
     lights_query: Query<(&ExtractedPointLight2d, &GlobalTransform)>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
 ) {
-    for (main_view_entity, main_view, visible_lights, shadow_camera) in &main_views {
+    for (main_view_entity, main_view, visible_lights) in &main_views {
         let mut buffer = GpuLights2d::new(&render_device);
 
         for visible_light in visible_lights.0.iter().copied() {
@@ -153,8 +145,10 @@ pub fn prepare_view_lights(
             let view_proj = main_view
                 .view_projection
                 .unwrap_or(main_view.projection * main_view.transform.compute_matrix().inverse());
+
             let position_ndc = (view_proj * light_transform.translation().extend(1.)).xy();
             let position_ws = light_transform.translation().xy();
+            
             let min_position = position_ws - Vec2::splat(light.range);
             let max_position = position_ws + Vec2::splat(light.range);
             let min_ndc = (view_proj * min_position.extend(0.).extend(1.)).xy();
@@ -167,12 +161,6 @@ pub fn prepare_view_lights(
                 radius_ndc: range_ndc * light.radius / light.range,
                 color: light.color.rgba_to_vec4(),
             });
-
-            // println!(
-            //     "pos_ndc {:?} range_ndc {:?}",
-            //     position_ndc,
-            //     max_ndc - min_ndc
-            // );
         }
 
         buffer.write_buffers(&render_device, &render_queue);

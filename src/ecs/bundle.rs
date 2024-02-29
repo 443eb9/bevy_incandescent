@@ -28,7 +28,6 @@ pub struct PointLight2dBundle {
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
-    pub view_visibility: ViewVisibility,
 }
 
 #[derive(Bundle)]

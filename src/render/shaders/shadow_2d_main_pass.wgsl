@@ -44,6 +44,12 @@ fn is_inside(p: vec2f, o: vec2f, a: f32, b: f32) -> bool {
     return p0.x * p0.x / a / a + p0.y * p0.y / b / b < 1.;
 }
 
+fn intersect(p: vec2f, o: vec2f, a: f32, b: f32) -> vec2f {
+    let p0 = p - o;
+    let t = (a * b) / sqrt(a * a * p0.y * p0.y + b * b * p0.x * p0.x);
+    return vec2f(p0.x * t, p0.y * t);
+}
+
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
     // let scale = 512u >> 8u;
@@ -100,6 +106,7 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
     for (var i_light: u32 = 0; i_light < arrayLength(&point_lights); i_light++) {
         let light = &point_lights[i_light];
         let half_range = (*light).range_ndc / 2.;
+        let half_radius = (*light).radius_ndc / 2.;
 
         if is_inside(ndc, (*light).position_ndc, half_range.x, half_range.y) {
             let rel_ndc = ndc - (*light).position_ndc;
@@ -114,10 +121,15 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
 
             if caster_dist > length(sample_ndc) {
                 var atten = 1.;
-                if !is_inside(ndc, (*light).position_ndc, (*light).radius_ndc.x, (*light).radius_ndc.y) {
+                if half_radius.x <= 0. || half_radius.y <= 0. {
                     atten -= length(rel_ndc / half_range);
+                } else if !is_inside(ndc, (*light).position_ndc, half_radius.x, half_radius.y) {
+                    let itsec_min = intersect(rel_ndc, vec2f(0.), half_radius.x, half_radius.y);
+                    let itsec_max = intersect(rel_ndc, vec2f(0.), half_range.x, half_range.y);
+                    atten -= length(itsec_min - rel_ndc) / length(itsec_max - itsec_min);
                 }
-                color += (*light).color * atten;
+                let light_color = (*light).color * atten;
+                color += vec4f(pow(light_color.rgb, vec3f(2.2)), light_color.a);
             }
         }
     }
