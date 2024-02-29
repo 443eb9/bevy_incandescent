@@ -13,14 +13,11 @@ use bevy::{
             RenderPassColorAttachment, RenderPassDescriptor,
         },
         renderer::RenderContext,
-        view::{ViewTarget, ViewUniformOffset, ViewUniforms},
+        view::{ViewTarget, ViewUniformOffset, ViewUniforms, VisibleEntities},
     },
 };
 
-use crate::ecs::{
-    camera::ShadowCameraDriver,
-    light::{ShadowView2d, VisibleLight2dEntities},
-};
+use crate::ecs::{camera::ShadowCameraDriver, light::ShadowView2d};
 
 use super::{
     pipeline::{
@@ -33,7 +30,6 @@ use super::{
 
 #[derive(RenderLabel, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum Shadow2dNode {
-    Shadow2dDebugDisplayPass,
     Shadow2dMeshPass,
     Shadow2dPrepass,
     Shadow2dDistortPass,
@@ -41,90 +37,8 @@ pub enum Shadow2dNode {
     Shadow2dMainPass,
 }
 
-pub struct Shadow2dDebugDisplayPassNode {
-    main_view_query: QueryState<(Read<ViewTarget>, Read<VisibleLight2dEntities>)>,
-    light_view_query: QueryState<Read<ShadowView2d>>,
-}
-
-impl FromWorld for Shadow2dDebugDisplayPassNode {
-    fn from_world(world: &mut World) -> Self {
-        Self {
-            main_view_query: world.query_filtered(),
-            light_view_query: world.query_filtered(),
-        }
-    }
-}
-
-impl Node for Shadow2dDebugDisplayPassNode {
-    fn update(&mut self, world: &mut World) {
-        self.main_view_query.update_archetypes(world);
-        self.light_view_query.update_archetypes(world);
-    }
-
-    fn run<'w>(
-        &self,
-        graph: &mut RenderGraphContext,
-        render_context: &mut RenderContext<'w>,
-        world: &'w World,
-    ) -> Result<(), NodeRunError> {
-        let main_view_entity = graph.view_entity();
-        let Ok((view_target, VisibleLight2dEntities(view_lights))) =
-            self.main_view_query.get_manual(world, main_view_entity)
-        else {
-            return Ok(());
-        };
-
-        let light = view_lights.first().copied().unwrap();
-        let Ok(shadow_view) = self.light_view_query.get_manual(world, light) else {
-            return Ok(());
-        };
-
-        let pipeline = world.resource::<Shadow2dDebugDisplayPipeline>();
-        let sampler = &world
-            .resource::<Shadow2dMainPassPipeline>()
-            .main_texture_sampler;
-        let shadow_map_storage = world.resource::<ShadowMap2dStorage>();
-        let Some(render_pipeline) = world
-            .resource::<PipelineCache>()
-            .get_render_pipeline(pipeline.cached_id)
-        else {
-            return Ok(());
-        };
-
-        let bind_group = render_context.render_device().create_bind_group(
-            "shadow_2d_debug_display_bind_group",
-            &pipeline.debug_display_layout,
-            &BindGroupEntries::sequential((
-                &shadow_view.attachment.texture.default_view,
-                sampler,
-                shadow_map_storage.texture_view_primary(),
-            )),
-        );
-
-        let post_process = view_target.post_process_write();
-
-        let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-            label: Some("shadow_2d_debug_display_pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: &post_process.destination,
-                resolve_target: None,
-                ops: Operations::default(),
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-
-        render_pass.set_render_pipeline(render_pipeline);
-        render_pass.set_bind_group(0, &bind_group, &[]);
-        render_pass.draw(0..3, 0..1);
-
-        Ok(())
-    }
-}
-
 pub struct Shadow2dMeshPassNode {
-    main_view_query: QueryState<Read<VisibleLight2dEntities>, With<ShadowCameraDriver>>,
+    main_view_query: QueryState<Read<VisibleEntities>, With<ShadowCameraDriver>>,
     light_view_query: QueryState<(Read<RenderPhase<Transparent2d>>, Read<ShadowView2d>)>,
 }
 
@@ -151,9 +65,7 @@ impl Node for Shadow2dMeshPassNode {
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let main_view_entity = graph.view_entity();
-        let Ok(VisibleLight2dEntities(view_lights)) =
-            self.main_view_query.get_manual(world, main_view_entity)
-        else {
+        let Ok(view_lights) = self.main_view_query.get_manual(world, main_view_entity) else {
             return Ok(());
         };
 
@@ -171,6 +83,8 @@ impl Node for Shadow2dMeshPassNode {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+
+            println!("{}", transparent_phase.items.len());
 
             transparent_phase.render(&mut render_pass, world, light_entity);
         }
@@ -369,12 +283,7 @@ impl Node for Shadow2dReductionNode {
 }
 
 pub struct Shadow2dMainPass {
-    main_view_query: QueryState<(
-        Read<ViewTarget>,
-        Read<VisibleLight2dEntities>,
-        Read<ViewUniformOffset>,
-        Read<GpuLights2d>,
-    )>,
+    main_view_query: QueryState<(Read<ViewTarget>, Read<ViewUniformOffset>, Read<GpuLights2d>)>,
     light_view_query: QueryState<Read<ShadowView2d>>,
 }
 
@@ -401,7 +310,7 @@ impl Node for Shadow2dMainPass {
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let main_view_entity = graph.view_entity();
-        let Ok((view_target, VisibleLight2dEntities(_), main_view_offset, gpu_lights)) =
+        let Ok((view_target, main_view_offset, gpu_lights)) =
             self.main_view_query.get_manual(world, main_view_entity)
         else {
             return Ok(());

@@ -3,95 +3,135 @@ use std::cell::Cell;
 use bevy::{
     ecs::{
         entity::Entity,
-        query::With,
-        system::{Commands, Local, ParallelCommands, Query},
+        query::{Has, With},
+        system::{Local, ParallelCommands, Query, Res},
     },
-    math::{
-        bounding::{Aabb2d, IntersectsVolume},
-        Vec2, Vec3Swizzles,
-    },
+    math::Vec3A,
     render::{
-        camera::{Camera, OrthographicProjection},
-        primitives::{Aabb, Frustum},
-        view::{InheritedVisibility, RenderLayers, Visibility},
+        camera::OrthographicProjection,
+        primitives::{Aabb, Frustum, Sphere},
+        view::{
+            ExtractedView, InheritedVisibility, NoFrustumCulling, RenderLayers, ViewVisibility,
+            VisibleEntities,
+        },
     },
     transform::components::GlobalTransform,
 };
 use thread_local::ThreadLocal;
 
-use crate::ecs::light::{Light2dAabb, PointLight2d, ShadowLayers, VisibleLight2dEntities};
+use crate::ecs::{light::PointLight2d, resources::ShadowMap2dConfig};
 
 pub fn calc_light_bounds(
     commands: ParallelCommands,
     lights_query: Query<(Entity, &GlobalTransform, &PointLight2d)>,
+    shadow_map_config: Res<ShadowMap2dConfig>,
 ) {
     lights_query
         .par_iter()
         .for_each(|(entity, transform, light)| {
-            let range = Vec2::splat(light.range);
-            let center = transform.translation().xy();
-
             commands.command_scope(|mut c| {
-                c.entity(entity).insert(Light2dAabb(Aabb2d {
-                    min: center - range,
-                    max: center + range,
-                }));
+                c.entity(entity).insert(Aabb {
+                    center: transform.translation().into(),
+                    half_extents: Vec3A::new(
+                        light.range,
+                        light.range,
+                        shadow_map_config.far - shadow_map_config.near,
+                    ) * 0.5,
+                });
             });
         });
 }
 
-pub fn check_light_visibility(
+pub fn update_light_frusta(
+    mut lights_query: Query<(&GlobalTransform, &mut Frustum, &PointLight2d)>,
+    shadow_map_config: Res<ShadowMap2dConfig>,
+) {
+    lights_query
+        .par_iter_mut()
+        .for_each(|(transform, mut frustum, light)| {
+            let view_proj = shadow_map_config.get_proj_mat(light.range)
+                * transform.compute_matrix().inverse();
+            *frustum = Frustum::from_view_projection_custom_far(
+                &view_proj,
+                &transform.translation(),
+                &transform.back(),
+                shadow_map_config.far,
+            );
+        });
+}
+
+// Almost as the same as the one in bevy_render/src/visibility.rs
+pub fn check_caster_visibility(
     mut thread_queues: Local<ThreadLocal<Cell<Vec<Entity>>>>,
-    mut main_view_query: Query<(
-        &mut VisibleLight2dEntities,
-        Option<&RenderLayers>,
-        &Camera,
-        &OrthographicProjection,
-    )>,
-    lights_query: Query<
-        (
-            Entity,
-            &Light2dAabb,
-            Option<&RenderLayers>,
-            &InheritedVisibility,
-            &Visibility,
-        ),
+    mut view_query: Query<
+        (&mut VisibleEntities, &Frustum, Option<&RenderLayers>),
         With<PointLight2d>,
     >,
+    mut visible_aabb_query: Query<(
+        Entity,
+        &InheritedVisibility,
+        &mut ViewVisibility,
+        Option<&RenderLayers>,
+        Option<&Aabb>,
+        &GlobalTransform,
+        Has<NoFrustumCulling>,
+    )>,
 ) {
-    for (mut visible_lights, camera_render_layers, camera, projection) in &mut main_view_query {
-        if !camera.is_active {
-            return;
-        }
+    for (mut visible_entities, frustum, maybe_view_mask) in &mut view_query {
+        let view_mask = maybe_view_mask.copied().unwrap_or_default();
 
-        let camera_aabb = Aabb2d {
-            min: projection.area.min,
-            max: projection.area.max,
-        };
+        visible_entities.entities.clear();
+        visible_aabb_query.par_iter_mut().for_each(|query_item| {
+            let (
+                entity,
+                inherited_visibility,
+                mut view_visibility,
+                maybe_entity_mask,
+                maybe_model_aabb,
+                transform,
+                no_frustum_culling,
+            ) = query_item;
 
-        visible_lights.0.clear();
-        lights_query.par_iter().for_each(
-            |(entity, aabb, light_render_layers, inherited_visibility, visibility)| {
-                let camera_render_layers = camera_render_layers.copied().unwrap_or_default();
-                let light_render_layers = light_render_layers.copied().unwrap_or_default();
+            // Skip computing visibility for entities that are configured to be hidden.
+            // ViewVisibility has already been reset in `reset_view_visibility`.
+            if !inherited_visibility.get() {
+                return;
+            }
 
-                if !camera_render_layers.intersects(&light_render_layers)
-                    || !inherited_visibility.get()
-                    || *visibility == Visibility::Hidden
-                    || !camera_aabb.intersects(&aabb.0)
-                {
-                    return;
+            let entity_mask = maybe_entity_mask.copied().unwrap_or_default();
+            if !view_mask.intersects(&entity_mask) {
+                return;
+            }
+
+            // If we have an aabb, do frustum culling
+            if !no_frustum_culling {
+                if let Some(model_aabb) = maybe_model_aabb {
+                    let model = transform.affine();
+                    let model_sphere = Sphere {
+                        center: model.transform_point3a(model_aabb.center),
+                        radius: transform.radius_vec3a(model_aabb.half_extents),
+                    };
+                    // Do quick sphere-based frustum culling
+                    if !frustum.intersects_sphere(&model_sphere, false) {
+                        return;
+                    }
+                    // Do aabb-based frustum culling
+                    if !frustum.intersects_obb(model_aabb, &model, true, false) {
+                        return;
+                    }
                 }
+            }
 
-                let cell = thread_queues.get_or_default();
-                let mut queue = cell.take();
-                queue.push(entity);
-                cell.set(queue);
-            },
-        );
+            // This only means it's visible to the light, not necessarily to the camera
+            view_visibility.set();
+            let cell = thread_queues.get_or_default();
+            let mut queue = cell.take();
+            queue.push(entity);
+            cell.set(queue);
+        });
 
         for cell in &mut thread_queues {
-            visible_lights.0.append(cell.get_mut());
+            visible_entities.entities.append(cell.get_mut());
         }
     }
 }

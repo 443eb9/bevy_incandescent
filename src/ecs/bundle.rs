@@ -1,6 +1,9 @@
 use bevy::{
     ecs::bundle::Bundle,
-    render::view::{InheritedVisibility, ViewVisibility, Visibility},
+    render::{
+        primitives::Frustum,
+        view::{InheritedVisibility, ViewVisibility, Visibility, VisibleEntities},
+    },
     transform::components::{GlobalTransform, Transform},
 };
 
@@ -8,25 +11,15 @@ use crate::render::DEFAULT_SHADOW_CASTER_LAYER;
 
 use super::light::{PointLight2d, ShadowCaster2d, ShadowCaster2dVisibility, ShadowLayers};
 
-#[derive(Bundle)]
-pub struct ShadowRenderedCameraBundle {
-    pub shadow_layer: ShadowLayers,
-}
-
-impl Default for ShadowRenderedCameraBundle {
-    fn default() -> Self {
-        Self {
-            shadow_layer: DEFAULT_SHADOW_CASTER_LAYER,
-        }
-    }
-}
-
 #[derive(Bundle, Default)]
 pub struct PointLight2dBundle {
     pub point_light: PointLight2d,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    pub frustum: Frustum,
+    pub visible_casters: VisibleEntities,
     pub visibility: Visibility,
+    pub view_visibility: ViewVisibility,
     pub inherited_visibility: InheritedVisibility,
 }
 

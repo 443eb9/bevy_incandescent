@@ -15,25 +15,19 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, ColorAttachment, TextureCache},
-        view::{ExtractedView, Msaa, ViewTarget},
+        view::{ExtractedView, Msaa, ViewTarget, VisibleEntities},
     },
     transform::components::GlobalTransform,
 };
 
 use crate::{
-    ecs::{
-        camera::ShadowCameraDriver,
-        light::{ShadowView2d, VisibleLight2dEntities},
-    },
+    ecs::{camera::ShadowCameraDriver, light::ShadowView2d, resources::ShadowMap2dConfig},
     render::resource::GpuShadowMapMeta,
 };
 
 use super::{
     extract::ExtractedPointLight2d,
-    resource::{
-        GpuLights2d, GpuMetaBuffers, GpuPointLight2d, ShadowMap2dConfig, ShadowMap2dMeta,
-        ShadowMap2dStorage,
-    },
+    resource::{GpuLights2d, GpuMetaBuffers, GpuPointLight2d, ShadowMap2dMeta, ShadowMap2dStorage},
 };
 
 #[derive(Component)]
@@ -129,31 +123,31 @@ pub fn prepare_lights(
 
 pub fn prepare_view_lights(
     mut commands: Commands,
-    main_views: Query<(Entity, &ExtractedView, &VisibleLight2dEntities), With<ViewTarget>>,
+    main_views: Query<(Entity, &ExtractedView, &VisibleEntities), With<ViewTarget>>,
     lights_query: Query<(&ExtractedPointLight2d, &GlobalTransform)>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
 ) {
-    for (main_view_entity, main_view, visible_lights) in &main_views {
+    for (main_view_entity, main_view, visible_entities) in &main_views {
         let mut buffer = GpuLights2d::new(&render_device);
 
-        for visible_light in visible_lights.0.iter().copied() {
+        let view_proj = main_view.view_projection.unwrap_or_else(|| {
+            main_view.projection * main_view.transform.compute_matrix().inverse()
+        });
+
+        for visible_light in visible_entities.entities.iter().copied() {
             let Ok((light, light_transform)) = lights_query.get(visible_light) else {
                 continue;
             };
 
-            let view_proj = main_view
-                .view_projection
-                .unwrap_or(main_view.projection * main_view.transform.compute_matrix().inverse());
-
-            let position_ndc = (view_proj * light_transform.translation().extend(1.)).xy();
             let position_ws = light_transform.translation().xy();
-            
+
             let min_position = position_ws - Vec2::splat(light.range);
             let max_position = position_ws + Vec2::splat(light.range);
             let min_ndc = (view_proj * min_position.extend(0.).extend(1.)).xy();
             let max_ndc = (view_proj * max_position.extend(0.).extend(1.)).xy();
-            let range_ndc = max_ndc - min_ndc;
+            let range_ndc = (max_ndc - min_ndc) / 2.;
+            let position_ndc = (max_ndc + min_ndc) / 2.;
 
             buffer.add_point_light(GpuPointLight2d {
                 position_ndc,

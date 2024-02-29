@@ -16,10 +16,6 @@ pub struct ShadowView2d {
     pub attachment: ColorAttachment,
 }
 
-#[derive(Component)]
-#[cfg_attr(feature = "debug", derive(Reflect))]
-pub struct VisibleLight2dEntities(pub Vec<Entity>);
-
 #[derive(Component, Default, Clone, Copy)]
 #[cfg_attr(feature = "debug", derive(Reflect))]
 pub struct PointLight2d {

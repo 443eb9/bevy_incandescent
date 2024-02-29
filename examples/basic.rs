@@ -1,9 +1,16 @@
 use bevy::{
-    app::{App, PluginGroup, Startup},
+    app::{App, PluginGroup, Startup, Update},
     core_pipeline::core_2d::Camera2dBundle,
-    ecs::system::Commands,
+    ecs::{
+        query::With,
+        system::{Commands, Query},
+    },
     math::Vec2,
-    render::{color::Color, view::{Msaa, NoFrustumCulling}},
+    render::{
+        camera::Camera,
+        color::Color,
+        view::{Msaa, NoFrustumCulling, VisibleEntities},
+    },
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
     window::{PresentMode, Window, WindowPlugin, WindowResolution},
@@ -11,7 +18,7 @@ use bevy::{
 };
 use bevy_incandescent::{
     ecs::{
-        bundle::{PointLight2dBundle, ShadowCaster2dBundle, ShadowRenderedCameraBundle},
+        bundle::{PointLight2dBundle, ShadowCaster2dBundle},
         light::PointLight2d,
     },
     IncandescentPlugin,
@@ -43,16 +50,14 @@ fn main() {
             HelpersPlugin { inspector: true },
         ))
         .add_systems(Startup, setup)
+        .add_systems(Update, debug)
         // MSAA is not supported yet
         .insert_resource(Msaa::Off)
         .run();
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn((
-        Camera2dBundle::default(),
-        ShadowRenderedCameraBundle::default(),
-    ));
+    commands.spawn(Camera2dBundle::default());
 
     let mut rd = StdRng::seed_from_u64(1);
     // let mut rd = StdRng::from_entropy();
@@ -72,21 +77,23 @@ fn setup(mut commands: Commands) {
                 ),
                 ..Default::default()
             },
-            NoFrustumCulling,
             ShadowCaster2dBundle::default(),
         ));
     }
 
-    commands.spawn(PointLight2dBundle {
-        point_light: PointLight2d {
-            color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-            intensity: 1000.,
-            range: 200.,
-            radius: 50.,
+    commands.spawn((
+        PointLight2dBundle {
+            point_light: PointLight2d {
+                color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
+                intensity: 1000.,
+                range: 200.,
+                radius: 50.,
+            },
+            transform: Transform::from_xyz(50., 25., 0.),
+            ..Default::default()
         },
-        transform: Transform::from_xyz(50., 25., 0.),
-        ..Default::default()
-    });
+        NoFrustumCulling,
+    ));
 
     // commands.spawn(PointLight2dBundle {
     //     point_light: PointLight2d {
@@ -98,4 +105,10 @@ fn setup(mut commands: Commands) {
     //     transform: Transform::from_xyz(-50., -25., 0.),
     //     ..Default::default()
     // });
+}
+
+fn debug(camera: Query<&VisibleEntities, With<PointLight2d>>) {
+    for camera in camera.iter() {
+        // println!("{:?}", camera.entities.len());
+    }
 }

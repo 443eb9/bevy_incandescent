@@ -17,9 +17,10 @@ use bevy::{
     transform::components::GlobalTransform,
 };
 
-use crate::ecs::light::{PointLight2d, ShadowCaster2dVisibility, VisibleLight2dEntities};
-
-use super::resource::ShadowMap2dConfig;
+use crate::ecs::{
+    light::{PointLight2d, ShadowCaster2dVisibility},
+    resources::ShadowMap2dConfig,
+};
 
 #[derive(Component, Clone, Copy)]
 pub struct ExtractedPointLight2d {
@@ -32,18 +33,13 @@ pub struct ExtractedPointLight2d {
 
 pub fn extract_point_lights(
     mut commands: Commands,
-    lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform)>>,
-    caster_query: Extract<Query<(Entity, &ShadowCaster2dVisibility)>>,
-    shadow_map_config: Res<ShadowMap2dConfig>,
+    lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform, &VisibleEntities)>>,
+    shadow_map_config: Extract<Res<ShadowMap2dConfig>>,
 ) {
-    let casters = caster_query
-        .iter()
-        .filter_map(|(e, v)| if v.0 { Some(e) } else { None })
-        .collect::<Vec<_>>();
     commands.insert_or_spawn_batch(
         lights_query
             .iter()
-            .map(|(entity, light, transform)| {
+            .map(|(entity, light, transform, visible_entities)| {
                 (
                     entity,
                     (
@@ -55,11 +51,10 @@ pub fn extract_point_lights(
                             spot_light_angles: None,
                         },
                         *transform,
-                        // TODO cull invisible casters
-                        VisibleEntities {
-                            entities: casters.clone(),
-                        },
+                        visible_entities.clone(),
                         ExtractedView {
+                            // TODO I have no idea why the size should be doubled
+                            //      The shadow map will be clipped if the size is not doubled
                             projection: shadow_map_config.get_proj_mat(light.range * 2.),
                             transform: *transform,
                             view_projection: None,
@@ -75,15 +70,9 @@ pub fn extract_point_lights(
     );
 }
 
-pub fn extract_shadow_cameras(
+pub fn extract_resources(
     mut commands: Commands,
-    main_views: Extract<Query<Entity, With<Camera>>>,
-    // TODO visibility check
-    lights_query: Extract<Query<Entity, With<PointLight2d>>>,
+    shadow_map_config: Extract<Res<ShadowMap2dConfig>>,
 ) {
-    for main_view_entity in &main_views {
-        commands
-            .get_or_spawn(main_view_entity)
-            .insert(VisibleLight2dEntities(lights_query.iter().collect()));
-    }
+    commands.insert_resource(shadow_map_config.clone());
 }

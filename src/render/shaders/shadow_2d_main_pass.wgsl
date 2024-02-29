@@ -52,10 +52,10 @@ fn intersect(p: vec2f, o: vec2f, a: f32, b: f32) -> vec2f {
 
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
-    // let scale = 512u >> 8u;
-    // let px = in.uv * vec2f(f32(scale), 512.);
+    // let scale = 512u >> 0u;
+    // let px = vec2f(in.uv.x, 1. - in.uv.y) * vec2f(f32(scale), 512.);
     // let color = pow(textureLoad(shadow_map, vec2i(px), 0), vec4f(2.2));
-    // return vec4f(color.r, 0., 0., 1.);
+    // // return vec4f(color.r, 0., 0., 1.);
     // return color;
 
     // return vec4f(px / 512., 0., 1.);
@@ -105,12 +105,13 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
     var color = textureSample(main_tex, main_tex_sampler, in.uv);
     for (var i_light: u32 = 0; i_light < arrayLength(&point_lights); i_light++) {
         let light = &point_lights[i_light];
-        let half_range = (*light).range_ndc / 2.;
-        let half_radius = (*light).radius_ndc / 2.;
+        let light_range_ndc = (*light).range_ndc;
+        let light_radius_ndc = (*light).radius_ndc;
 
-        if is_inside(ndc, (*light).position_ndc, half_range.x, half_range.y) {
+        if is_inside(ndc, (*light).position_ndc, light_range_ndc.x, light_range_ndc.y) {
             let rel_ndc = ndc - (*light).position_ndc;
-            let sample_ndc = rel_ndc / (*light).range_ndc / 2.;
+            // TODO because the size of projection matrix is doubled, we need to divide by 4
+            let sample_ndc = rel_ndc / light_range_ndc / 4.;
 
             var caster_dist = 0.;
             if abs(sample_ndc.y) < abs(sample_ndc.x) {
@@ -121,11 +122,11 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
 
             if caster_dist > length(sample_ndc) {
                 var atten = 1.;
-                if half_radius.x <= 0. || half_radius.y <= 0. {
-                    atten -= length(rel_ndc / half_range);
-                } else if !is_inside(ndc, (*light).position_ndc, half_radius.x, half_radius.y) {
-                    let itsec_min = intersect(rel_ndc, vec2f(0.), half_radius.x, half_radius.y);
-                    let itsec_max = intersect(rel_ndc, vec2f(0.), half_range.x, half_range.y);
+                if light_radius_ndc.x <= 0. || light_radius_ndc.y <= 0. {
+                    atten -= length(rel_ndc / light_range_ndc);
+                } else if !is_inside(ndc, (*light).position_ndc, light_radius_ndc.x, light_radius_ndc.y) {
+                    let itsec_min = intersect(rel_ndc, vec2f(0.), light_radius_ndc.x, light_radius_ndc.y);
+                    let itsec_max = intersect(rel_ndc, vec2f(0.), light_range_ndc.x, light_range_ndc.y);
                     atten -= length(itsec_min - rel_ndc) / length(itsec_max - itsec_min);
                 }
                 let light_color = (*light).color * atten;

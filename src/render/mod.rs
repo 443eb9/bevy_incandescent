@@ -1,12 +1,14 @@
 use bevy::{
-    app::{App, Plugin, Update},
+    app::{App, Plugin, PostUpdate, Update},
     asset::{load_internal_asset, Handle},
     core_pipeline::core_2d::graph::{Core2d, Node2d},
     ecs::schedule::IntoSystemConfigs,
     math::UVec3,
     render::{
-        render_graph::RenderGraphApp, render_resource::Shader, view::RenderLayers, ExtractSchedule,
-        Render, RenderApp, RenderSet,
+        render_graph::RenderGraphApp,
+        render_resource::Shader,
+        view::{RenderLayers, VisibilitySystems},
+        ExtractSchedule, Render, RenderApp, RenderSet,
     },
 };
 
@@ -24,7 +26,7 @@ use self::{
         Shadow2dDebugDisplayPipeline, Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline,
         Shadow2dPrepassPipeline, Shadow2dReductionPipeline,
     },
-    resource::{GpuLights2d, ShadowMap2dConfig, ShadowMap2dStorage},
+    resource::{GpuLights2d, ShadowMap2dStorage},
 };
 
 pub mod extract;
@@ -89,23 +91,25 @@ impl Plugin for IncandescentRenderPlugin {
             Shader::from_wgsl
         );
 
-        app.add_systems(Update, visibility::calc_light_bounds);
+        app.add_systems(
+            PostUpdate,
+            (
+                visibility::calc_light_bounds.in_set(VisibilitySystems::CalculateBounds),
+                visibility::update_light_frusta.in_set(VisibilitySystems::UpdateOrthographicFrusta),
+                visibility::check_caster_visibility.in_set(VisibilitySystems::CheckVisibility),
+            ),
+        );
 
         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;
         };
 
-        render_app
-            .init_resource::<ShadowMap2dConfig>()
-            .init_resource::<GpuMetaBuffers>();
+        render_app.init_resource::<GpuMetaBuffers>();
 
         render_app
             .add_systems(
                 ExtractSchedule,
-                (
-                    extract::extract_point_lights,
-                    extract::extract_shadow_cameras,
-                ),
+                (extract::extract_point_lights, extract::extract_resources),
             )
             .add_systems(
                 Render,
@@ -113,10 +117,6 @@ impl Plugin for IncandescentRenderPlugin {
             );
 
         render_app
-            // .add_render_graph_node::<Shadow2dDebugDisplayPassNode>(
-            //     Core2d,
-            //     Shadow2dNode::Shadow2dDebugDisplayPass,
-            // )
             .add_render_graph_node::<Shadow2dMeshPassNode>(Core2d, Shadow2dNode::Shadow2dMeshPass)
             .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, Shadow2dNode::Shadow2dPrepass)
             .add_render_graph_node::<Shadow2dDistortPassNode>(
@@ -133,7 +133,6 @@ impl Plugin for IncandescentRenderPlugin {
                 (
                     Node2d::MainPass,
                     Shadow2dNode::Shadow2dMeshPass,
-                    // Shadow2dNode::Shadow2dDebugDisplayPass,
                     Shadow2dNode::Shadow2dPrepass,
                     Shadow2dNode::Shadow2dDistortPass,
                     Shadow2dNode::Shadow2dReductionPass,
