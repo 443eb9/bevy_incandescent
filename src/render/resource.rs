@@ -167,13 +167,12 @@ impl ShadowMap2dStorage {
             z: meta.count,
         };
         self.num_reductions = meta.size.trailing_zeros();
-        // self.num_reductions = 1;
 
-        // assert_eq!(
-        //     2u32.pow(self.num_reductions),
-        //     self.meta.size,
-        //     "Shadow map size must be a power of 2!"
-        // );
+        assert_eq!(
+            2u32.pow(self.num_reductions),
+            self.meta.size,
+            "Shadow map size must be a power of 2!"
+        );
 
         meta_buffers.init_reduction_time_buffer(self.num_reductions);
     }

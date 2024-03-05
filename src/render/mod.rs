@@ -23,8 +23,8 @@ use crate::{
 use self::{
     graph::{Shadow2dDistortPassNode, Shadow2dMeshPassNode, Shadow2dNode},
     pipeline::{
-        Shadow2dDebugDisplayPipeline, Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline,
-        Shadow2dPrepassPipeline, Shadow2dReductionPipeline,
+        Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
+        Shadow2dReductionPipeline,
     },
     resource::{GpuLights2d, ShadowMap2dStorage},
 };
@@ -38,7 +38,6 @@ pub mod visibility;
 
 pub const DEFAULT_SHADOW_CASTER_LAYER: ShadowLayers = ShadowLayers(RenderLayers::layer(31));
 pub const SHADOW_TYPES: Handle<Shader> = Handle::weak_from_u128(1123087897454135486384145234748455);
-pub const SHADOW_DEBUG_DISPLAY_SHADER: Handle<Shader> = Handle::weak_from_u128(4518564135421563415);
 pub const SHADOW_DISTORT_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13745315343641643643);
 pub const SHADOW_PREPASS_SHADER: Handle<Shader> = Handle::weak_from_u128(5321368413218521485631341);
 pub const SHADOW_REDUCTION_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(485648964891315351);
@@ -53,13 +52,6 @@ impl Plugin for IncandescentRenderPlugin {
             app,
             SHADOW_TYPES,
             "shaders/shadow_2d_types.wgsl",
-            Shader::from_wgsl
-        );
-
-        load_internal_asset!(
-            app,
-            SHADOW_DEBUG_DISPLAY_SHADER,
-            "shaders/shadow_2d_debug_display.wgsl",
             Shader::from_wgsl
         );
 
@@ -148,7 +140,6 @@ impl Plugin for IncandescentRenderPlugin {
         };
 
         render_app
-            .init_resource::<Shadow2dDebugDisplayPipeline>()
             .init_resource::<Shadow2dPrepassPipeline>()
             .init_resource::<Shadow2dDistortPassPipeline>()
             .init_resource::<Shadow2dReductionPipeline>()

@@ -2,6 +2,8 @@
 
 A 2d lighting crate for bevy. Currently wip.
 
+![](https://raw.githubusercontent.com/443eb9/bevy_incandescent/master/doc/imgs/readme_showcase.png)
+
 ## Future Goals
 
 - Basic Lighting

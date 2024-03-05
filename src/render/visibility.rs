@@ -35,8 +35,8 @@ pub fn calc_light_bounds(
                     half_extents: Vec3A::new(
                         light.range,
                         light.range,
-                        shadow_map_config.far - shadow_map_config.near,
-                    ) * 0.5,
+                        (shadow_map_config.far - shadow_map_config.near) * 0.5,
+                    ),
                 });
             });
         });
@@ -49,8 +49,8 @@ pub fn update_light_frusta(
     lights_query
         .par_iter_mut()
         .for_each(|(transform, mut frustum, light)| {
-            let view_proj = shadow_map_config.get_proj_mat(light.range)
-                * transform.compute_matrix().inverse();
+            let view_proj =
+                shadow_map_config.get_proj_mat(light.range) * transform.compute_matrix().inverse();
             *frustum = Frustum::from_view_projection_custom_far(
                 &view_proj,
                 &transform.translation(),

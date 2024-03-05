@@ -81,19 +81,16 @@ fn setup(mut commands: Commands) {
         ));
     }
 
-    commands.spawn((
-        PointLight2dBundle {
-            point_light: PointLight2d {
-                color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-                intensity: 1000.,
-                range: 200.,
-                radius: 50.,
-            },
-            transform: Transform::from_xyz(50., 25., 0.),
-            ..Default::default()
+    commands.spawn(PointLight2dBundle {
+        point_light: PointLight2d {
+            color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
+            intensity: 1000.,
+            range: 200.,
+            radius: 50.,
         },
-        NoFrustumCulling,
-    ));
+        transform: Transform::from_xyz(50., 25., 0.),
+        ..Default::default()
+    });
 
     // commands.spawn(PointLight2dBundle {
     //     point_light: PointLight2d {
@@ -109,6 +106,6 @@ fn setup(mut commands: Commands) {
 
 fn debug(camera: Query<&VisibleEntities, With<PointLight2d>>) {
     for camera in camera.iter() {
-        // println!("{:?}", camera.entities.len());
+        // println!("{:?}", camera.entities);
     }
 }

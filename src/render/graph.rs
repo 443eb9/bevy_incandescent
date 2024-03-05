@@ -21,7 +21,7 @@ use crate::ecs::{camera::ShadowCameraDriver, light::ShadowView2d};
 
 use super::{
     pipeline::{
-        Shadow2dDebugDisplayPipeline, Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline,
+        Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline,
         Shadow2dPrepassPipeline, Shadow2dReductionPipeline,
     },
     prepare::DynamicUniformIndex,
@@ -83,8 +83,6 @@ impl Node for Shadow2dMeshPassNode {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
-
-            println!("{}", transparent_phase.items.len());
 
             transparent_phase.render(&mut render_pass, world, light_entity);
         }

@@ -22,66 +22,9 @@ use bevy::render::render_resource::binding_types as binding;
 
 use super::{
     resource::{GpuPointLight2d, GpuShadowMapMeta},
-    SHADOW_DEBUG_DISPLAY_SHADER, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
+    SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
     SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
 };
-
-#[derive(Resource)]
-pub struct Shadow2dDebugDisplayPipeline {
-    pub cached_id: CachedRenderPipelineId,
-    pub debug_display_layout: BindGroupLayout,
-}
-
-impl FromWorld for Shadow2dDebugDisplayPipeline {
-    fn from_world(world: &mut World) -> Self {
-        let render_device = world.resource::<RenderDevice>();
-
-        let debug_display_layout = render_device.create_bind_group_layout(
-            "shadow_2d_debug_display_layout",
-            &BindGroupLayoutEntries::sequential(
-                ShaderStages::FRAGMENT,
-                (
-                    // Main texture
-                    binding::texture_2d(TextureSampleType::Float { filterable: true }),
-                    binding::sampler(SamplerBindingType::Filtering),
-                    // Shadow map
-                    binding::texture_storage_2d_array(
-                        TextureFormat::Rg32Float,
-                        StorageTextureAccess::ReadOnly,
-                    ),
-                ),
-            ),
-        );
-
-        let cached_id =
-            world
-                .resource_mut::<PipelineCache>()
-                .queue_render_pipeline(RenderPipelineDescriptor {
-                    label: Some("shadow_2d_debug_display_pipeline".into()),
-                    layout: vec![debug_display_layout.clone()],
-                    push_constant_ranges: vec![],
-                    vertex: fullscreen_shader_vertex_state(),
-                    primitive: PrimitiveState::default(),
-                    depth_stencil: None,
-                    multisample: MultisampleState::default(),
-                    fragment: Some(FragmentState {
-                        shader: SHADOW_DEBUG_DISPLAY_SHADER,
-                        shader_defs: vec![],
-                        entry_point: "fragment".into(),
-                        targets: vec![Some(ColorTargetState {
-                            format: TextureFormat::bevy_default(),
-                            blend: None,
-                            write_mask: ColorWrites::ALL,
-                        })],
-                    }),
-                });
-
-        Self {
-            cached_id,
-            debug_display_layout,
-        }
-    }
-}
 
 #[derive(Resource)]
 pub struct Shadow2dPrepassPipeline {
