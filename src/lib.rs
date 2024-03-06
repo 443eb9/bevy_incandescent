@@ -2,6 +2,7 @@ use bevy::app::{App, Plugin};
 use ecs::IncandescentECSPlugin;
 use render::IncandescentRenderPlugin;
 
+#[cfg(feature = "debug")]
 pub mod debug;
 pub mod ecs;
 pub mod render;

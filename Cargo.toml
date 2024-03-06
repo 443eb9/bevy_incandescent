@@ -32,7 +32,6 @@ bevy = { version = "0.13", features = [
     "trace_tracy",
     "bevy_winit",
     "bevy_asset",
-    "bevy_gizmos",
 ] }
 bevy_mod_debugdump = "0.10.0"
 bevy-inspector-egui = "0.23.2"
@@ -40,7 +39,7 @@ rand = "0.8"
 
 [features]
 default = []
-debug = []
+debug = ["bevy/bevy_gizmos"]
 compatibility = []
 
 # [patch.crates-io]
