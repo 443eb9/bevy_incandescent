@@ -1,5 +1,10 @@
 #define_import_path bevy_incandescent::shadow_2d_types
 
+struct AmbientLight2d {
+    color: vec4f,
+    intensity: f32,
+}
+
 struct PointLight2d {
     intensity: f32,
     position_ss: vec2f,

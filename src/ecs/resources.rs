@@ -2,7 +2,24 @@ use bevy::{
     ecs::{reflect::ReflectResource, system::Resource},
     math::{Mat4, Vec2},
     reflect::Reflect,
+    render::color::Color,
 };
+
+#[derive(Resource, Clone, Copy, Reflect)]
+#[reflect(Resource)]
+pub struct AmbientLight2d {
+    pub color: Color,
+    pub intensity: f32,
+}
+
+impl Default for AmbientLight2d {
+    fn default() -> Self {
+        Self {
+            color: Color::WHITE,
+            intensity: 1.,
+        }
+    }
+}
 
 #[derive(Resource, Clone, Copy, Reflect)]
 #[reflect(Resource)]

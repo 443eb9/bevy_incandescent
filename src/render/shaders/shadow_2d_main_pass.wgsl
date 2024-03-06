@@ -2,7 +2,7 @@
 #import bevy_render::view::View
 #import bevy_incandescent::{
     lighting::get_distance_attenuation,
-    shadow_2d_types::{PointLight2d, ShadowMapMeta}
+    shadow_2d_types::{AmbientLight2d, PointLight2d, ShadowMapMeta}
 }
 
 @group(0) @binding(0)
@@ -21,6 +21,9 @@ var<uniform> main_view: View;
 var<uniform> shadow_map_meta: ShadowMapMeta;
 
 @group(0) @binding(5)
+var<uniform> ambient_light: AmbientLight2d;
+
+@group(0) @binding(6)
 var<storage> point_lights: array<PointLight2d>;
 
 fn get_caster_distance_h(rel_ss: vec2f, i_light: u32) -> f32 {
@@ -129,5 +132,7 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
         }
     }
 
-    return textureSample(main_tex, main_tex_sampler, in.uv) + vec4f(color, 0.);
+    return textureSample(main_tex, main_tex_sampler, in.uv)
+           * vec4f(ambient_light.color.rgb * ambient_light.intensity, 1.)
+           + vec4f(color, 0.);
 }

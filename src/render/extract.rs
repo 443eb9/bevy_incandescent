@@ -15,7 +15,7 @@ use bevy::{
     transform::components::GlobalTransform,
 };
 
-use crate::ecs::{light::PointLight2d, resources::ShadowMap2dConfig};
+use crate::ecs::{light::PointLight2d, resources::{AmbientLight2d, ShadowMap2dConfig}};
 
 #[derive(Component, Clone, Copy)]
 pub struct ExtractedPointLight2d {
@@ -68,6 +68,8 @@ pub fn extract_point_lights(
 pub fn extract_resources(
     mut commands: Commands,
     shadow_map_config: Extract<Res<ShadowMap2dConfig>>,
+    ambient_light: Extract<Res<AmbientLight2d>>,
 ) {
     commands.insert_resource(shadow_map_config.clone());
+    commands.insert_resource(ambient_light.clone());
 }

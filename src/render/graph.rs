@@ -25,7 +25,9 @@ use super::{
         Shadow2dReductionPipeline,
     },
     prepare::DynamicUniformIndex,
-    resource::{GpuLights2d, GpuMetaBuffers, GpuShadowMapMeta, ShadowMap2dStorage},
+    resource::{
+        GpuAmbientLight2dBuffer, GpuLights2d, GpuMetaBuffers, GpuShadowMapMeta, ShadowMap2dStorage,
+    },
 };
 
 #[derive(RenderLabel, Debug, Hash, PartialEq, Eq, Clone)]
@@ -363,6 +365,7 @@ impl Node for Shadow2dMainPass {
         let shadow_map_storage = world.resource::<ShadowMap2dStorage>();
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
         let view_uniforms = world.resource::<ViewUniforms>();
+        let gpu_ambient_light_buffer = world.resource::<GpuAmbientLight2dBuffer>();
 
         let bind_group = render_context.render_device().create_bind_group(
             "shadow_2d_main_pass",
@@ -373,6 +376,7 @@ impl Node for Shadow2dMainPass {
                 shadow_map_storage.final_texture_view(),
                 view_uniforms.uniforms.binding().unwrap(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),
+                gpu_ambient_light_buffer.binding(),
                 gpu_lights.point_lights_binding(),
             )),
         );

@@ -21,13 +21,20 @@ use bevy::{
 };
 
 use crate::{
-    ecs::{camera::MainShadowCameraDriver, light::ShadowView2d, resources::ShadowMap2dConfig},
-    render::resource::GpuShadowMapMeta,
+    ecs::{
+        camera::MainShadowCameraDriver,
+        light::ShadowView2d,
+        resources::{AmbientLight2d, ShadowMap2dConfig},
+    },
+    render::resource::{GpuAmbientLight2d, GpuShadowMapMeta},
 };
 
 use super::{
     extract::ExtractedPointLight2d,
-    resource::{GpuLights2d, GpuMetaBuffers, GpuPointLight2d, ShadowMap2dMeta, ShadowMap2dStorage},
+    resource::{
+        GpuAmbientLight2dBuffer, GpuLights2d, GpuMetaBuffers, GpuPointLight2d, ShadowMap2dMeta,
+        ShadowMap2dStorage,
+    },
 };
 
 #[derive(Component)]
@@ -55,6 +62,7 @@ pub fn prepare_lights(
     mut texture_cache: ResMut<TextureCache>,
     main_views: Query<Entity, With<ViewTarget>>,
     mut point_lights: Query<Entity, With<ExtractedPointLight2d>>,
+    ambient_light: Res<AmbientLight2d>,
     shadow_map_config: Res<ShadowMap2dConfig>,
     mut shadow_map_storage: ResMut<ShadowMap2dStorage>,
     mut gpu_meta_buffers: ResMut<GpuMetaBuffers>,
@@ -113,6 +121,8 @@ pub fn prepare_lights(
             .insert((meta_index, shadow_view));
     }
 
+    gpu_meta_buffers.write_buffers(&render_device, &render_queue);
+
     shadow_map_storage.try_update(
         ShadowMap2dMeta {
             count: point_light_count as u32,
@@ -122,10 +132,19 @@ pub fn prepare_lights(
         &mut gpu_meta_buffers,
     );
 
-    gpu_meta_buffers.write_buffers(&render_device, &render_queue);
+    commands.insert_resource(GpuAmbientLight2dBuffer::new(
+        GpuAmbientLight2d {
+            color: ambient_light.color.rgba_linear_to_vec4(),
+            intensity: ambient_light.intensity,
+        },
+        &render_device,
+        &render_queue,
+    ));
 
     if let Some(shadow_camera) = main_views.iter().next() {
-        commands.entity(shadow_camera).insert(MainShadowCameraDriver);
+        commands
+            .entity(shadow_camera)
+            .insert(MainShadowCameraDriver);
     }
 }
 

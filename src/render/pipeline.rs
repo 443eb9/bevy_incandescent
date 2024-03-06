@@ -21,9 +21,9 @@ use bevy::{
 use bevy::render::render_resource::binding_types as binding;
 
 use super::{
-    resource::{GpuPointLight2d, GpuShadowMapMeta},
-    SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
-    SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
+    resource::{GpuAmbientLight2d, GpuPointLight2d, GpuShadowMapMeta},
+    SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_PREPASS_SHADER,
+    SHADOW_REDUCTION_PASS_SHADER,
 };
 
 #[derive(Resource)]
@@ -200,6 +200,8 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     binding::uniform_buffer::<ViewUniform>(true),
                     // Shadow map meta
                     binding::uniform_buffer::<GpuShadowMapMeta>(false),
+                    // Ambient light
+                    binding::uniform_buffer::<GpuAmbientLight2d>(false),
                     // Point lights
                     binding::storage_buffer_read_only::<Vec<GpuPointLight2d>>(false),
                 ),

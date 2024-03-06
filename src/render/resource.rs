@@ -15,6 +15,36 @@ use bevy::{
 
 use super::{prepare::DynamicUniformIndex, SHADOW_PREPASS_WORKGROUP_SIZE};
 
+#[derive(ShaderType)]
+pub struct GpuAmbientLight2d {
+    pub color: Vec4,
+    pub intensity: f32,
+}
+
+#[derive(Resource, Default)]
+pub struct GpuAmbientLight2dBuffer {
+    buffer: DynamicUniformBuffer<GpuAmbientLight2d>,
+}
+
+impl GpuAmbientLight2dBuffer {
+    pub fn new(
+        light: GpuAmbientLight2d,
+        render_device: &RenderDevice,
+        render_queue: &RenderQueue,
+    ) -> Self {
+        let mut buffer = Self::default();
+        buffer.buffer.clear();
+        buffer.buffer.push(&light);
+        buffer.buffer.write_buffer(render_device, render_queue);
+        buffer
+    }
+
+    #[inline]
+    pub fn binding(&self) -> BindingResource {
+        self.buffer.binding().unwrap()
+    }
+}
+
 #[derive(ShaderType, Clone)]
 pub struct GpuPointLight2d {
     pub intensity: f32,
@@ -70,7 +100,7 @@ pub struct GpuShadowMapMeta {
 
 #[derive(Resource, Default)]
 pub struct GpuMetaBuffers {
-    light: DynamicUniformBuffer<GpuShadowMapMeta>,
+    shadow_map: DynamicUniformBuffer<GpuShadowMapMeta>,
     reduction: DynamicUniformBuffer<u32>,
     reduction_offsets: Vec<u32>,
 }
@@ -81,7 +111,7 @@ impl GpuMetaBuffers {
         &mut self,
         meta: GpuShadowMapMeta,
     ) -> DynamicUniformIndex<GpuShadowMapMeta> {
-        DynamicUniformIndex::new(self.light.push(&meta))
+        DynamicUniformIndex::new(self.shadow_map.push(&meta))
     }
 
     #[inline]
@@ -102,18 +132,18 @@ impl GpuMetaBuffers {
 
     #[inline]
     pub fn clear(&mut self) {
-        self.light.clear();
+        self.shadow_map.clear();
     }
 
     #[inline]
     pub fn write_buffers(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        self.light.write_buffer(render_device, render_queue);
+        self.shadow_map.write_buffer(render_device, render_queue);
         self.reduction.write_buffer(render_device, render_queue);
     }
 
     #[inline]
     pub fn shadow_map_meta_buffer_binding(&self) -> BindingResource {
-        self.light.binding().unwrap()
+        self.shadow_map.binding().unwrap()
     }
 
     #[inline]
