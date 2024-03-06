@@ -17,13 +17,12 @@ use super::{prepare::DynamicUniformIndex, SHADOW_PREPASS_WORKGROUP_SIZE};
 
 #[derive(ShaderType, Clone)]
 pub struct GpuPointLight2d {
+    pub intensity: f32,
     pub position_ss: Vec2,
     pub radius_ss: f32,
     pub range_ss: f32,
     pub color: Vec4,
 }
-
-impl GpuPointLight2d {}
 
 #[derive(Component)]
 pub struct GpuLights2d {

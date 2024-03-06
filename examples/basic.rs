@@ -3,7 +3,7 @@ use bevy::{
     core_pipeline::core_2d::Camera2dBundle,
     ecs::system::Commands,
     math::Vec2,
-    render::{color::Color, view::Msaa},
+    render::{color::Color, view::{Msaa, NoFrustumCulling}},
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
     window::{PresentMode, Window, WindowPlugin, WindowResolution},
@@ -67,6 +67,7 @@ fn setup(mut commands: Commands) {
                 ),
                 ..Default::default()
             },
+            NoFrustumCulling,
             ShadowCaster2dBundle::default(),
         ));
     }
@@ -74,7 +75,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(PointLight2dBundle {
         point_light: PointLight2d {
             color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-            intensity: 1000.,
+            intensity: 1.,
             range: 200.,
             radius: 50.,
         },
@@ -85,7 +86,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(PointLight2dBundle {
         point_light: PointLight2d {
             color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-            intensity: 2000.,
+            intensity: 0.8,
             range: 400.,
             radius: 30.,
         },

@@ -37,6 +37,8 @@ pub mod resource;
 pub mod visibility;
 
 pub const DEFAULT_SHADOW_CASTER_LAYER: ShadowLayers = ShadowLayers(RenderLayers::layer(31));
+pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(9489746513229684156489);
+pub const LIGHTING_SHADER: Handle<Shader> = Handle::weak_from_u128(1351654315646451321546531153891);
 pub const SHADOW_TYPES: Handle<Shader> = Handle::weak_from_u128(1123087897454135486384145234748455);
 pub const SHADOW_DISTORT_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13745315343641643643);
 pub const SHADOW_PREPASS_SHADER: Handle<Shader> = Handle::weak_from_u128(5321368413218521485631341);
@@ -48,6 +50,15 @@ pub struct IncandescentRenderPlugin;
 
 impl Plugin for IncandescentRenderPlugin {
     fn build(&self, app: &mut App) {
+        load_internal_asset!(app, HASH_SHADER, "shaders/hash.wgsl", Shader::from_wgsl);
+
+        load_internal_asset!(
+            app,
+            LIGHTING_SHADER,
+            "shaders/lighting.wgsl",
+            Shader::from_wgsl
+        );
+
         load_internal_asset!(
             app,
             SHADOW_TYPES,

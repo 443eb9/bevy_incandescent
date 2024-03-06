@@ -52,3 +52,7 @@ path = "examples/basic.rs"
 [[example]]
 name = "print_graph"
 path = "examples/print_graph.rs"
+
+[[example]]
+name = "stress_test"
+path = "examples/stress_test.rs"

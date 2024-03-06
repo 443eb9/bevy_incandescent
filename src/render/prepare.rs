@@ -21,7 +21,7 @@ use bevy::{
 };
 
 use crate::{
-    ecs::{camera::ShadowCameraDriver, light::ShadowView2d, resources::ShadowMap2dConfig},
+    ecs::{camera::MainShadowCameraDriver, light::ShadowView2d, resources::ShadowMap2dConfig},
     render::resource::GpuShadowMapMeta,
 };
 
@@ -63,6 +63,10 @@ pub fn prepare_lights(
     msaa: Res<Msaa>,
 ) {
     assert_eq!(*msaa, Msaa::Off, "MSAA is not supported yet!");
+    assert!(
+        shadow_map_config.pcf_samples <= 32,
+        "PCF samples must be less than 32!"
+    );
 
     let point_light_count = point_lights.iter().count();
     gpu_meta_buffers.clear();
@@ -121,8 +125,7 @@ pub fn prepare_lights(
     gpu_meta_buffers.write_buffers(&render_device, &render_queue);
 
     if let Some(shadow_camera) = main_views.iter().next() {
-        // TODO add visible lights to all cameras
-        commands.entity(shadow_camera).insert(ShadowCameraDriver);
+        commands.entity(shadow_camera).insert(MainShadowCameraDriver);
     }
 }
 
@@ -162,6 +165,7 @@ pub fn prepare_view_lights(
             let radius_ndc = light.radius / light.range * range_ndc;
 
             buffer.add_point_light(GpuPointLight2d {
+                intensity: light.intensity,
                 position_ss: (position_ndc + 1.) / 2. * screen_size,
                 radius_ss: radius_ndc * screen_size.x,
                 range_ss: range_ndc * screen_size.x,

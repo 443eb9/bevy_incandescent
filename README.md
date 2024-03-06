@@ -8,11 +8,12 @@ A 2d lighting crate for bevy. Currently wip.
 
 - MSM Approach (PCSS -> VSM -> MSM step by step)
 - PBS Lighting
-- Screen Space SSAO
-- Support `bevy_entitiles`
-- Volumetric Clouds
-- Volumetric Fog
 - Rim Lights
+- Volumetric Fog
+- Volumetric Clouds
+- Screen Space SSAO
+- Support particle system [`bevy_hanabi`](https://github.com/djeedai/bevy_hanabi)
+- Support tilemap system [`bevy_entitiles`](https://github.com/443eb9/bevy_entitiles)
 
 ## Render Graph
 

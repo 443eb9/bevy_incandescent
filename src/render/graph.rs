@@ -17,12 +17,12 @@ use bevy::{
     },
 };
 
-use crate::ecs::{camera::ShadowCameraDriver, light::ShadowView2d};
+use crate::ecs::{camera::MainShadowCameraDriver, light::ShadowView2d};
 
 use super::{
     pipeline::{
-        Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline,
-        Shadow2dPrepassPipeline, Shadow2dReductionPipeline,
+        Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
+        Shadow2dReductionPipeline,
     },
     prepare::DynamicUniformIndex,
     resource::{GpuLights2d, GpuMetaBuffers, GpuShadowMapMeta, ShadowMap2dStorage},
@@ -38,7 +38,7 @@ pub enum Shadow2dNode {
 }
 
 pub struct Shadow2dMeshPassNode {
-    main_view_query: QueryState<Read<VisibleEntities>, With<ShadowCameraDriver>>,
+    main_view_query: QueryState<Read<VisibleEntities>, With<MainShadowCameraDriver>>,
     light_view_query: QueryState<(Read<RenderPhase<Transparent2d>>, Read<ShadowView2d>)>,
 }
 
@@ -107,6 +107,7 @@ impl FromWorld for Shadow2dPrepassNode {
 }
 
 impl Node for Shadow2dPrepassNode {
+    #[inline]
     fn update(&mut self, world: &mut World) {
         self.light_view_query.update_archetypes(world);
     }
@@ -161,16 +162,34 @@ impl Node for Shadow2dPrepassNode {
     }
 }
 
-#[derive(Default)]
-pub struct Shadow2dDistortPassNode;
+pub struct Shadow2dDistortPassNode {
+    main_view_query: QueryState<(), With<MainShadowCameraDriver>>,
+}
+
+impl FromWorld for Shadow2dDistortPassNode {
+    fn from_world(world: &mut World) -> Self {
+        Self {
+            main_view_query: world.query_filtered(),
+        }
+    }
+}
 
 impl Node for Shadow2dDistortPassNode {
+    #[inline]
+    fn update(&mut self, world: &mut World) {
+        self.main_view_query.update_archetypes(world);
+    }
+
     fn run<'w>(
         &self,
-        _graph: &mut RenderGraphContext,
+        graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
+        let Ok(_) = self.main_view_query.get_manual(world, graph.view_entity()) else {
+            return Ok(());
+        };
+
         let pipeline = world.resource::<Shadow2dDistortPassPipeline>();
         let Some(compute_pipeline) = world
             .resource::<PipelineCache>()
@@ -213,16 +232,34 @@ impl Node for Shadow2dDistortPassNode {
     }
 }
 
-#[derive(Default)]
-pub struct Shadow2dReductionNode;
+pub struct Shadow2dReductionNode {
+    main_view_query: QueryState<(), With<MainShadowCameraDriver>>,
+}
+
+impl FromWorld for Shadow2dReductionNode {
+    fn from_world(world: &mut World) -> Self {
+        Self {
+            main_view_query: world.query_filtered(),
+        }
+    }
+}
 
 impl Node for Shadow2dReductionNode {
+    #[inline]
+    fn update(&mut self, world: &mut World) {
+        self.main_view_query.update_archetypes(world);
+    }
+
     fn run<'w>(
         &self,
-        _graph: &mut RenderGraphContext,
+        graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
+        let Ok(_) = self.main_view_query.get_manual(world, graph.view_entity()) else {
+            return Ok(());
+        };
+
         let pipeline = world.resource::<Shadow2dReductionPipeline>();
         let Some(compute_pipeline) = world
             .resource::<PipelineCache>()
