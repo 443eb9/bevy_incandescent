@@ -7,7 +7,7 @@ use bevy::{
         query::With,
         system::{Commands, Query, Res, ResMut},
     },
-    math::{Vec2, Vec3Swizzles, Vec4, Vec4Swizzles},
+    math::{Vec2, Vec3, Vec3Swizzles, Vec4, Vec4Swizzles},
     render::{
         color::Color,
         render_resource::{
@@ -131,6 +131,7 @@ pub fn prepare_view_lights(
     for (main_view_entity, main_view, visible_entities) in &main_views {
         let mut buffer = GpuLights2d::new(&render_device);
 
+        let main_view_pos_ws = main_view.transform.translation();
         let view_proj = main_view.view_projection.unwrap_or_else(|| {
             main_view.projection * main_view.transform.compute_matrix().inverse()
         });
@@ -140,20 +141,26 @@ pub fn prepare_view_lights(
                 continue;
             };
 
-            let position_ws = light_transform.translation().xy();
+            let position_ws = light_transform.translation().extend(1.);
+            let screen_size = 2.
+                / Vec2::new(
+                    main_view.projection.x_axis[0],
+                    main_view.projection.y_axis[1],
+                );
 
-            let min_position = position_ws - Vec2::splat(light.range);
-            let max_position = position_ws + Vec2::splat(light.range);
-            let min_ndc = (view_proj * min_position.extend(0.).extend(1.)).xy();
-            let max_ndc = (view_proj * max_position.extend(0.).extend(1.)).xy();
-            let range_ndc = (max_ndc - min_ndc) / 2.;
-            let position_ndc = (max_ndc + min_ndc) / 2.;
+            let mut position_ndc = (view_proj * position_ws).xy();
+            position_ndc.y = -position_ndc.y;
+            let range_ndc =
+                view_proj * (Vec3::new(light.range, 0., 0.) + main_view_pos_ws).extend(1.);
+
+            let range_ndc = range_ndc.x / range_ndc.w / 2.;
+            let radius_ndc = light.radius / light.range * range_ndc;
 
             buffer.add_point_light(GpuPointLight2d {
-                position_ndc,
-                range_ndc,
-                radius_ndc: range_ndc * light.radius / light.range,
-                color: light.color.rgba_to_vec4(),
+                position_ss: (position_ndc + 1.) / 2. * screen_size,
+                radius_ss: radius_ndc * screen_size.x,
+                range_ss: range_ndc * screen_size.x,
+                color: light.color.rgba_linear_to_vec4(),
             });
         }
 

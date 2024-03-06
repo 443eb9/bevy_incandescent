@@ -3,9 +3,9 @@
 #import bevy_incandescent::shadow_2d_types::ShadowMapMeta
 
 struct PointLight {
-    position_ndc: vec2f,
-    range_ndc: vec2f,
-    radius_ndc: vec2f,
+    position_ss: vec2f,
+    radius_ss: f32,
+    range_ss: f32,
     color: vec4f,
 }
 
@@ -27,32 +27,83 @@ var<uniform> shadow_map_meta: ShadowMapMeta;
 @group(0) @binding(5)
 var<storage> point_lights: array<PointLight>;
 
-fn get_caster_distance_h(sample_ndc: vec2f, i_light: u32) -> f32 {
-    let v0 = (sample_ndc.y / abs(sample_ndc.x) + 1.) / 2.;
-    let px = vec2f(2., f32(shadow_map_meta.size)) * vec2f(sample_ndc.x / 2. + 1., v0);
+fn get_caster_distance_h(rel_ss: vec2f, i_light: u32) -> f32 {
+    let v0 = (rel_ss.y / abs(rel_ss.x) + 1.) / 2.;
+    let px = vec2f(2., f32(shadow_map_meta.size)) * vec2f(rel_ss.x / 2. + 1., v0);
     return textureLoad(shadow_map, vec2i(px), i_light).r;
 }
 
-fn get_caster_distance_v(sample_ndc: vec2f, i_light: u32) -> f32 {
-    let v0 = (sample_ndc.x / abs(sample_ndc.y) + 1.) / 2.;
-    let px = vec2f(2., f32(shadow_map_meta.size)) * vec2f(sample_ndc.y / 2. + 1., v0);
+fn get_caster_distance_v(rel_ss: vec2f, i_light: u32) -> f32 {
+    let v0 = (rel_ss.x / abs(rel_ss.y) + 1.) / 2.;
+    let px = vec2f(2., f32(shadow_map_meta.size)) * vec2f(rel_ss.y / 2. + 1., v0);
     return textureLoad(shadow_map, vec2i(px), i_light).g;
 }
 
-fn is_inside(p: vec2f, o: vec2f, a: f32, b: f32) -> bool {
-    let p0 = p - o;
-    return p0.x * p0.x / a / a + p0.y * p0.y / b / b < 1.;
+fn get_caster_distance(rel_ss: vec2f, i_light: u32) -> f32 {
+    if abs(rel_ss.y) < abs(rel_ss.x) {
+        return get_caster_distance_h(rel_ss, i_light);
+    } else {
+        return get_caster_distance_v(rel_ss, i_light);
+    }
 }
 
-fn intersect(p: vec2f, o: vec2f, a: f32, b: f32) -> vec2f {
-    let p0 = p - o;
-    let t = (a * b) / sqrt(a * a * p0.y * p0.y + b * b * p0.x * p0.x);
-    return vec2f(p0.x * t, p0.y * t);
-}
+// fn caster_dist_average(sample_ndc: vec2f, i_light: u32) -> f32 {
+//     var caster_dist = 0.;
+//     var pcss_count = 0;
+
+//     var POISSON_DISK: array<vec2f, 32> = array<vec2f, 32>(
+//         vec2f(0.8342270007200882,0.28814735667820845),
+//         vec2f(0.8264199719660169,0.1090369643376499),
+//         vec2f(0.6784681277016904,0.36535885311678634),
+//         vec2f(0.7381973795416519,0.22695634447974777),
+//         vec2f(0.7702680023357095,0.4722784529353279),
+//         vec2f(0.9351229206585461,0.16905050325597692),
+//         vec2f(0.8540762434176998,0.3917249981922568),
+//         vec2f(0.6003790707176412,0.13589749953695904),
+//         vec2f(0.7140843172626038,0.03457204051621679),
+//         vec2f(0.5260926483017618,0.3944808363265693),
+//         vec2f(0.645610498490519,0.5349442850139658),
+//         vec2f(0.6066682573717601,0.2878050901544499),
+//         vec2f(0.4538111047369613,0.18876124547827403),
+//         vec2f(0.48079338169183666,0.2890199911997478),
+//         vec2f(0.9916624489016049,0.046454018661305704),
+//         vec2f(0.5983695471298044,0.027983816213303994),
+//         vec2f(0.4077904101544584,0.09934487505973388),
+//         vec2f(0.20901604650710173,0.1043784189081576),
+//         vec2f(0.2666233350480739,0.004601707618502468),
+//         vec2f(0.2656651572591358,0.18996114777855283),
+//         vec2f(0.37877176238082616,0.26500770719269534),
+//         vec2f(0.8062043548051135,0.5682004999710749),
+//         vec2f(0.4592241169624123,0.548029806967463),
+//         vec2f(0.6137166995912418,0.6632439118229136),
+//         vec2f(0.10904976594891624,0.16744767716904238),
+//         vec2f(0.25558191979309847,0.326757155507577),
+//         vec2f(0.12420603976718372,0.30352975263809234),
+//         vec2f(0.5050651579251138,0.7027035802838815),
+//         vec2f(0.11555416536095653,0.04112114851879525),
+//         vec2f(0.005179508593920384,0.24291966974019186),
+//         vec2f(0.009549777408563165,0.047482323406035754),
+//         vec2f(0.32312849030711477,0.7701802894233629),
+//     );
+
+//     for (var pcss: u32; pcss < 32; pcss ++) {
+//         let dist = get_caster_distance(sample_ndc + POISSON_DISK[pcss] * ndc_texel, i_light);
+//         if dist > px_dist {
+//             caster_dist += dist;
+//             pcss_count += 1;
+//         }
+//     }
+//     caster_dist /= f32(pcss_count);
+//     return caster_dist;
+// }
+
+// fn pcss(sample_ndc: vec2f, i_light: u32) -> f32 {
+//     let avg_dist = caster_dist_average(sample_ndc, i_light);
+// }
 
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
-    // let scale = 512u >> 0u;
+    // let scale = 512u >> 8u;
     // let px = vec2f(in.uv.x, 1. - in.uv.y) * vec2f(f32(scale), 512.);
     // let color = pow(textureLoad(shadow_map, vec2i(px), 0), vec4f(2.2));
     // // return vec4f(color.r, 0., 0., 1.);
@@ -60,77 +111,33 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
 
     // return vec4f(px / 512., 0., 1.);
 
-    // return textureSample(main_tex, main_tex_sampler, in.uv);
-    // return textureLoad(shadow_map, vec2i(in.uv * vec2f(512., 512.)), 0);
-    // return vec4f(f32(arrayLength(point_lights)), 1., 1., 1.);
-    // return point_lights[1].color;
-
-    // var color = textureSample(main_tex, main_tex_sampler, in.uv);
-    // let aspect = main_view.projection[1][1] / main_view.projection[0][0];
-    // var uv_ndc = in.uv * 2. - 1.;
-    // uv_ndc.y = -uv_ndc.y;
-
-    // for (var i_light: u32 = 0; i_light < arrayLength(&point_lights); i_light++) {
-    //     let light = &point_lights[i_light];
-    //     // Orthographic projection, no need to divide by w
-    //     var min_ndc_pos = (main_view.view_proj * (*light).min_world_pos).xy;
-    //     var max_ndc_pos = (main_view.view_proj * (*light).max_world_pos).xy;
-    //     let area = max_ndc_pos - min_ndc_pos;
-
-    //     if min_ndc_pos.x < uv_ndc.x && max_ndc_pos.x > uv_ndc.x
-    //        && min_ndc_pos.y < uv_ndc.y && max_ndc_pos.y > uv_ndc.y {
-
-    //         let light_ndc = (min_ndc_pos + max_ndc_pos) / 2.;
-    //         var sample_ndc = (uv_ndc - light_ndc) / area / 2.;
-    //         sample_ndc.y = -sample_ndc.y;
-
-    //         var caster_dist = 0.;
-    //         if abs(sample_ndc.y) < abs(sample_ndc.x) {
-    //             caster_dist = get_caster_distance_h(sample_ndc, i_light);
-    //         } else {
-    //             caster_dist = get_caster_distance_v(sample_ndc, i_light);
-    //         }
-
-    //         if caster_dist > length(sample_ndc) {
-    //             color += (*light).color;
-    //         }
-    //     }
-    // }
-
-    // return color;
-
-    var ndc = in.uv * 2. - 1.;
-    ndc.y = -ndc.y;
+    let screen_size = 2. * vec2f(main_view.inverse_projection[0][0], main_view.inverse_projection[1][1]);
+    let px = in.uv * screen_size;
 
     var color = textureSample(main_tex, main_tex_sampler, in.uv);
     for (var i_light: u32 = 0; i_light < arrayLength(&point_lights); i_light++) {
         let light = &point_lights[i_light];
-        let light_range_ndc = (*light).range_ndc;
-        let light_radius_ndc = (*light).radius_ndc;
+        let light_pos_ss = (*light).position_ss;
+        let light_range_ss = max((*light).range_ss, 0.);
+        let light_radius_ss = max((*light).radius_ss, 0.);
+        let light_color = (*light).color;
 
-        if is_inside(ndc, (*light).position_ndc, light_range_ndc.x, light_range_ndc.y) {
-            let rel_ndc = ndc - (*light).position_ndc;
-            // TODO because the size of projection matrix is doubled, we need to divide by 4
-            let sample_ndc = rel_ndc / light_range_ndc / 4.;
+        let rel_px_ss = px - light_pos_ss;
+        let rel_px_dist = length(rel_px_ss);
+        let rel_ss = rel_px_ss / light_range_ss;
+        let rel_dist = length(rel_ss);
 
-            var caster_dist = 0.;
-            if abs(sample_ndc.y) < abs(sample_ndc.x) {
-                caster_dist = get_caster_distance_h(sample_ndc, i_light);
-            } else {
-                caster_dist = get_caster_distance_v(sample_ndc, i_light);
-            }
-
-            if caster_dist > length(sample_ndc) {
-                var atten = 1.;
-                if light_radius_ndc.x <= 0. || light_radius_ndc.y <= 0. {
-                    atten -= length(rel_ndc / light_range_ndc);
-                } else if !is_inside(ndc, (*light).position_ndc, light_radius_ndc.x, light_radius_ndc.y) {
-                    let itsec_min = intersect(rel_ndc, vec2f(0.), light_radius_ndc.x, light_radius_ndc.y);
-                    let itsec_max = intersect(rel_ndc, vec2f(0.), light_range_ndc.x, light_range_ndc.y);
-                    atten -= length(itsec_min - rel_ndc) / length(itsec_max - itsec_min);
+        if length(rel_px_ss) < light_range_ss {
+            // Because the proj mat is doubled, here the dist should also be doubled
+            let caster_dist = get_caster_distance(rel_ss, i_light) * 2.;
+            if rel_dist < caster_dist {
+                var atten = 0.;
+                if rel_dist < light_radius_ss {
+                    atten = (rel_px_dist - light_radius_ss) / (light_range_ss - light_radius_ss);
                 }
-                let light_color = (*light).color * atten;
-                color += vec4f(pow(light_color.rgb, vec3f(2.2)), light_color.a);
+                atten = saturate(atten);
+                let attend_color = light_color * (1. - atten) * (1. - atten);
+                color += attend_color;
             }
         }
     }

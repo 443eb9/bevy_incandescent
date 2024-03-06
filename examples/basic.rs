@@ -41,7 +41,7 @@ fn main() {
                     // resolution: WindowResolution::new((512 >> 1) as f32, 512.),
                     // resolution: WindowResolution::new(512., 512.),
                     present_mode: PresentMode::Immediate,
-                    resizable: false,
+                    // resizable: false,
                     ..Default::default()
                 }),
                 ..Default::default()

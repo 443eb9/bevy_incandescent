@@ -18,7 +18,7 @@ impl Default for ShadowMap2dConfig {
 }
 
 impl ShadowMap2dConfig {
-    pub fn get_proj_mat(&self, scale: f32) -> Mat4 {
-        Mat4::orthographic_rh(-scale, scale, -scale, scale, self.near, self.far)
+    pub fn get_proj_mat(&self, size: f32) -> Mat4 {
+        Mat4::orthographic_rh(-size, size, -size, size, self.near, self.far)
     }
 }

@@ -24,9 +24,9 @@ use super::{
 
 #[derive(ShaderType, Clone)]
 pub struct GpuPointLight2d {
-    pub position_ndc: Vec2,
-    pub range_ndc: Vec2,
-    pub radius_ndc: Vec2,
+    pub position_ss: Vec2,
+    pub radius_ss: f32,
+    pub range_ss: f32,
     pub color: Vec4,
 }
 

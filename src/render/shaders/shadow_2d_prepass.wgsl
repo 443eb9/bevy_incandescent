@@ -19,12 +19,12 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
 
     var d = 1.;
     if textureLoad(main_tex, px, 0).a > 0.99 {
-        d = length(vec2f(px) / vec2f(f32(shadow_map_meta.size)) - vec2f(0.5));
+        d = length(vec2f(px) / vec2f(f32(shadow_map_meta.size)) - vec2f(0.5)) * 2.;
     }
 
     textureStore(
         shadow_map,
-        vec2u(px.x, shadow_map_meta.size - px.y - 1),
+        vec2u(px.x, px.y),
         shadow_map_meta.index,
         vec4f(d, 0., 0., 0.),
     );
