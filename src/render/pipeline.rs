@@ -9,8 +9,8 @@ use bevy::{
             AddressMode, BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
             CachedRenderPipelineId, ColorTargetState, ColorWrites, ComputePipelineDescriptor,
             FilterMode, FragmentState, MultisampleState, PipelineCache, PrimitiveState,
-            RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages,
-            StorageTextureAccess, TextureFormat, TextureSampleType,
+            RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderDefVal,
+            ShaderStages, StorageTextureAccess, TextureFormat, TextureSampleType,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
@@ -22,9 +22,17 @@ use bevy::render::render_resource::binding_types as binding;
 
 use super::{
     resource::{GpuAmbientLight2d, GpuPointLight2d, GpuShadowMapMeta},
-    SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_PREPASS_SHADER,
+    SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_MAP_FORMAT, SHADOW_PREPASS_SHADER,
     SHADOW_REDUCTION_PASS_SHADER,
 };
+
+fn get_shader_defs() -> Vec<ShaderDefVal> {
+    #[cfg(feature = "compatibility")]
+    return vec!["COMPATIBILITY".into()];
+
+    #[cfg(not(feature = "compatibility"))]
+    return vec![];
+}
 
 #[derive(Resource)]
 pub struct Shadow2dPrepassPipeline {
@@ -45,7 +53,7 @@ impl FromWorld for Shadow2dPrepassPipeline {
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
                     // Shadow map
                     binding::texture_storage_2d_array(
-                        TextureFormat::Rg32Float,
+                        SHADOW_MAP_FORMAT,
                         StorageTextureAccess::WriteOnly,
                     ),
                     // Shadow map meta
@@ -61,7 +69,7 @@ impl FromWorld for Shadow2dPrepassPipeline {
                 layout: vec![prepass_layout.clone()],
                 push_constant_ranges: vec![],
                 shader: SHADOW_PREPASS_SHADER,
-                shader_defs: vec![],
+                shader_defs: get_shader_defs(),
                 entry_point: "main".into(),
             });
 
@@ -89,12 +97,12 @@ impl FromWorld for Shadow2dDistortPassPipeline {
                 (
                     // Source shadow map
                     binding::texture_storage_2d_array(
-                        TextureFormat::Rg32Float,
+                        SHADOW_MAP_FORMAT,
                         StorageTextureAccess::ReadOnly,
                     ),
                     // Destination shadow map
                     binding::texture_storage_2d_array(
-                        TextureFormat::Rg32Float,
+                        SHADOW_MAP_FORMAT,
                         StorageTextureAccess::WriteOnly,
                     ),
                     // Shadow map meta
@@ -110,7 +118,7 @@ impl FromWorld for Shadow2dDistortPassPipeline {
                 layout: vec![distort_layout.clone()],
                 push_constant_ranges: vec![],
                 shader: SHADOW_DISTORT_PASS_SHADER,
-                shader_defs: vec![],
+                shader_defs: get_shader_defs(),
                 entry_point: "main".into(),
             });
 
@@ -138,12 +146,12 @@ impl FromWorld for Shadow2dReductionPipeline {
                 (
                     // Source shadow map
                     binding::texture_storage_2d_array(
-                        TextureFormat::Rg32Float,
+                        SHADOW_MAP_FORMAT,
                         StorageTextureAccess::ReadWrite,
                     ),
                     // Destination shadow map
                     binding::texture_storage_2d_array(
-                        TextureFormat::Rg32Float,
+                        SHADOW_MAP_FORMAT,
                         StorageTextureAccess::ReadWrite,
                     ),
                     // Shadow map meta
@@ -161,7 +169,7 @@ impl FromWorld for Shadow2dReductionPipeline {
                 layout: vec![reduction_layout.clone()],
                 push_constant_ranges: vec![],
                 shader: SHADOW_REDUCTION_PASS_SHADER,
-                shader_defs: vec![],
+                shader_defs: get_shader_defs(),
                 entry_point: "main".into(),
             });
 
@@ -193,7 +201,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     binding::sampler(SamplerBindingType::Filtering),
                     // Shadow map
                     binding::texture_storage_2d_array(
-                        TextureFormat::Rg32Float,
+                        SHADOW_MAP_FORMAT,
                         StorageTextureAccess::ReadOnly,
                     ),
                     // Shadow views
@@ -232,7 +240,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     vertex: fullscreen_shader_vertex_state(),
                     fragment: Some(FragmentState {
                         shader: SHADOW_MAIN_PASS_SHADER,
-                        shader_defs: vec![],
+                        shader_defs: get_shader_defs(),
                         entry_point: "fragment".into(),
                         targets: vec![Some(ColorTargetState {
                             format: TextureFormat::bevy_default(),

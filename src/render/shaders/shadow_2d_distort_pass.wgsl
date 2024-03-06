@@ -1,10 +1,24 @@
 #import bevy_incandescent::shadow_2d_types::ShadowMapMeta;
 
 @group(0) @binding(0)
-var source_shadow_map: texture_storage_2d_array<rg32float, read>;
+var source_shadow_map: texture_storage_2d_array<
+#ifdef COMPATIBILITY
+    rgba32float,
+#else
+    rg32float,
+#endif
+    read
+>;
 
 @group(0) @binding(1)
-var dest_shadow_map: texture_storage_2d_array<rg32float, write>;
+var dest_shadow_map: texture_storage_2d_array<
+#ifdef COMPATIBILITY
+    rgba32float,
+#else
+    rg32float,
+#endif
+    write
+>;
 
 @group(0) @binding(2)
 var<uniform> shadow_map_meta: ShadowMapMeta;

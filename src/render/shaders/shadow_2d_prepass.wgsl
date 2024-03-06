@@ -4,7 +4,14 @@
 var main_tex: texture_2d<f32>;
 
 @group(0) @binding(1)
-var shadow_map: texture_storage_2d_array<rg32float, write>;
+var shadow_map: texture_storage_2d_array<
+#ifdef COMPATIBILITY
+    rgba32float,
+#else
+    rg32float,
+#endif
+    write
+>;
 
 @group(0) @binding(2)
 var<uniform> shadow_map_meta: ShadowMapMeta;

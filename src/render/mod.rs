@@ -6,7 +6,7 @@ use bevy::{
     math::UVec3,
     render::{
         render_graph::RenderGraphApp,
-        render_resource::Shader,
+        render_resource::{Shader, TextureFormat},
         view::{RenderLayers, VisibilitySystems},
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
@@ -45,6 +45,11 @@ pub const SHADOW_PREPASS_SHADER: Handle<Shader> = Handle::weak_from_u128(5321368
 pub const SHADOW_REDUCTION_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(485648964891315351);
 pub const SHADOW_MAIN_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13643651896413518964153);
 pub const SHADOW_PREPASS_WORKGROUP_SIZE: UVec3 = UVec3 { x: 16, y: 16, z: 1 };
+
+#[cfg(feature = "compatibility")]
+pub const SHADOW_MAP_FORMAT: TextureFormat = TextureFormat::Rgba32Float;
+#[cfg(not(feature = "compatibility"))]
+pub const SHADOW_MAP_FORMAT: TextureFormat = TextureFormat::Rg32Float;
 
 pub struct IncandescentRenderPlugin;
 

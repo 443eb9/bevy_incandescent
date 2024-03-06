@@ -15,6 +15,13 @@ A 2d lighting crate for bevy. Currently wip.
 - Support particle system [`bevy_hanabi`](https://github.com/djeedai/bevy_hanabi)
 - Support tilemap system [`bevy_entitiles`](https://github.com/443eb9/bevy_entitiles)
 
+## Feature Flags
+
+| Flag            | Functionality                                                                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `debug`         | Show some debug info like light ranges.                                                                                                            |
+| `compatibility` | Prefer compatibility to performance as this crate uses things that are not supported by every platform including textures with `Rg32Float` format. |
+
 ## Render Graph
 
 ![](https://raw.githubusercontent.com/443eb9/bevy_incandescent/master/doc/imgs/render_graph.png)

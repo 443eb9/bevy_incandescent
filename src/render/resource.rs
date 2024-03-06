@@ -5,7 +5,7 @@ use bevy::{
         render_resource::{
             AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
             GpuArrayBuffer, SamplerDescriptor, ShaderType, TextureAspect, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+            TextureDimension, TextureUsages, TextureView, TextureViewDescriptor,
             TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
@@ -13,7 +13,7 @@ use bevy::{
     },
 };
 
-use super::{prepare::DynamicUniformIndex, SHADOW_PREPASS_WORKGROUP_SIZE};
+use super::{prepare::DynamicUniformIndex, SHADOW_MAP_FORMAT, SHADOW_PREPASS_WORKGROUP_SIZE};
 
 #[derive(ShaderType)]
 pub struct GpuAmbientLight2d {
@@ -146,9 +146,10 @@ impl GpuMetaBuffers {
         self.shadow_map.binding().unwrap()
     }
 
+    // This buffer keeps panic if unwrap directly, not sure why
     #[inline]
-    pub fn reduction_time_buffer_binding(&self) -> BindingResource {
-        self.reduction.binding().unwrap()
+    pub fn reduction_time_buffer_binding(&self) -> Option<BindingResource> {
+        self.reduction.binding()
     }
 }
 
@@ -250,7 +251,7 @@ impl ShadowMap2dStorage {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rg32Float,
+            format: SHADOW_MAP_FORMAT,
             usage: TextureUsages::STORAGE_BINDING
                 | TextureUsages::TEXTURE_BINDING
                 | TextureUsages::RENDER_ATTACHMENT,

@@ -274,6 +274,10 @@ impl Node for Shadow2dReductionNode {
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
         let work_group_count = shadow_map_storage.work_group_count_total();
 
+        let Some(reduction_time_binding) = gpu_meta_buffers.reduction_time_buffer_binding() else {
+            return Ok(());
+        };
+
         let bind_group_primary_source = render_context.render_device().create_bind_group(
             "shadow_2d_reduction_pass_bind_group",
             &pipeline.reduction_layout,
@@ -281,7 +285,7 @@ impl Node for Shadow2dReductionNode {
                 shadow_map_storage.texture_view_primary(),
                 shadow_map_storage.texture_view_secondary(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),
-                gpu_meta_buffers.reduction_time_buffer_binding(),
+                reduction_time_binding.clone(),
             )),
         );
         let bind_group_secondary_source = render_context.render_device().create_bind_group(
@@ -291,7 +295,7 @@ impl Node for Shadow2dReductionNode {
                 shadow_map_storage.texture_view_secondary(),
                 shadow_map_storage.texture_view_primary(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),
-                gpu_meta_buffers.reduction_time_buffer_binding(),
+                reduction_time_binding,
             )),
         );
         let bind_groups = [&bind_group_secondary_source, &bind_group_primary_source];

@@ -12,7 +12,14 @@ var main_tex: texture_2d<f32>;
 var main_tex_sampler: sampler;
 
 @group(0) @binding(2)
-var shadow_map: texture_storage_2d_array<rg32float, read>;
+var shadow_map: texture_storage_2d_array<
+#ifdef COMPATIBILITY
+    rgba32float,
+#else
+    rg32float,
+#endif
+    read
+>;
 
 @group(0) @binding(3)
 var<uniform> main_view: View;

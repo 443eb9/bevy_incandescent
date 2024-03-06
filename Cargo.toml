@@ -41,6 +41,7 @@ rand = "0.8"
 [features]
 default = []
 debug = []
+compatibility = []
 
 # [patch.crates-io]
 # bevy = { path = "../bevy" }
