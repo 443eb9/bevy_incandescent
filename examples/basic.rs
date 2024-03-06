@@ -1,16 +1,9 @@
 use bevy::{
-    app::{App, PluginGroup, Startup, Update},
+    app::{App, PluginGroup, Startup},
     core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
-        query::With,
-        system::{Commands, Query},
-    },
+    ecs::system::Commands,
     math::Vec2,
-    render::{
-        camera::Camera,
-        color::Color,
-        view::{Msaa, NoFrustumCulling, VisibleEntities},
-    },
+    render::{color::Color, view::Msaa},
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
     window::{PresentMode, Window, WindowPlugin, WindowResolution},
@@ -38,10 +31,7 @@ fn main() {
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(1280., 720.),
-                    // resolution: WindowResolution::new((512 >> 1) as f32, 512.),
-                    // resolution: WindowResolution::new(512., 512.),
                     present_mode: PresentMode::Immediate,
-                    // resizable: false,
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -50,7 +40,6 @@ fn main() {
             HelpersPlugin { inspector: true },
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, debug)
         // MSAA is not supported yet
         .insert_resource(Msaa::Off)
         .run();
@@ -61,6 +50,7 @@ fn setup(mut commands: Commands) {
 
     let mut rd = StdRng::seed_from_u64(1);
     // let mut rd = StdRng::from_entropy();
+
     for _ in 0..10 {
         commands.spawn((
             SpriteBundle {
@@ -92,20 +82,14 @@ fn setup(mut commands: Commands) {
         ..Default::default()
     });
 
-    // commands.spawn(PointLight2dBundle {
-    //     point_light: PointLight2d {
-    //         color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-    //         intensity: 2000.,
-    //         range: 250.,
-    //         radius: 30.,
-    //     },
-    //     transform: Transform::from_xyz(-50., -25., 0.),
-    //     ..Default::default()
-    // });
-}
-
-fn debug(camera: Query<&VisibleEntities, With<PointLight2d>>) {
-    for camera in camera.iter() {
-        // println!("{:?}", camera.entities);
-    }
+    commands.spawn(PointLight2dBundle {
+        point_light: PointLight2d {
+            color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
+            intensity: 2000.,
+            range: 400.,
+            radius: 30.,
+        },
+        transform: Transform::from_xyz(-50., -25., 0.),
+        ..Default::default()
+    });
 }

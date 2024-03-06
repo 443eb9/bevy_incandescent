@@ -8,11 +8,9 @@ use bevy::{
     },
     math::Vec3A,
     render::{
-        camera::OrthographicProjection,
         primitives::{Aabb, Frustum, Sphere},
         view::{
-            ExtractedView, InheritedVisibility, NoFrustumCulling, RenderLayers, ViewVisibility,
-            VisibleEntities,
+            InheritedVisibility, NoFrustumCulling, RenderLayers, ViewVisibility, VisibleEntities,
         },
     },
     transform::components::GlobalTransform,

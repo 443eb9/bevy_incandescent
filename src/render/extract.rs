@@ -3,12 +3,10 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        query::With,
         system::{Commands, Query, Res},
     },
     math::UVec4,
     render::{
-        camera::{Camera, OrthographicProjection},
         color::Color,
         render_phase::RenderPhase,
         view::{ColorGrading, ExtractedView, VisibleEntities},
@@ -17,10 +15,7 @@ use bevy::{
     transform::components::GlobalTransform,
 };
 
-use crate::ecs::{
-    light::{PointLight2d, ShadowCaster2dVisibility},
-    resources::ShadowMap2dConfig,
-};
+use crate::ecs::{light::PointLight2d, resources::ShadowMap2dConfig};
 
 #[derive(Component, Clone, Copy)]
 pub struct ExtractedPointLight2d {

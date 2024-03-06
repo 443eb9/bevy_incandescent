@@ -1,5 +1,5 @@
 use bevy::{
-    app::{App, Plugin, PostUpdate, Update},
+    app::{App, Plugin, PostUpdate},
     asset::{load_internal_asset, Handle},
     core_pipeline::core_2d::graph::{Core2d, Node2d},
     ecs::schedule::IntoSystemConfigs,
@@ -26,7 +26,7 @@ use self::{
         Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
         Shadow2dReductionPipeline,
     },
-    resource::{GpuLights2d, ShadowMap2dStorage},
+    resource::ShadowMap2dStorage,
 };
 
 pub mod extract;

@@ -6,7 +6,7 @@ A 2d lighting crate for bevy. Currently wip.
 
 ## Future Goals
 
-- Basic Lighting
+- MSM Approach (PCSS -> VSM -> MSM step by step)
 - PBS Lighting
 - Screen Space SSAO
 - Support `bevy_entitiles`

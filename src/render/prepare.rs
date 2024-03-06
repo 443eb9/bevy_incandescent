@@ -7,7 +7,7 @@ use bevy::{
         query::With,
         system::{Commands, Query, Res, ResMut},
     },
-    math::{Vec2, Vec3, Vec3Swizzles, Vec4, Vec4Swizzles},
+    math::{Vec2, Vec3, Vec4Swizzles},
     render::{
         color::Color,
         render_resource::{
@@ -68,9 +68,14 @@ pub fn prepare_lights(
     gpu_meta_buffers.clear();
 
     for (light_index, light_entity) in point_lights.iter_mut().enumerate() {
+        // TODO support different pcf settings for different lights
         let meta_index = gpu_meta_buffers.push_light_meta(GpuShadowMapMeta {
             index: light_index as u32,
             size: shadow_map_config.size,
+            offset: shadow_map_config.offset,
+            bias: shadow_map_config.bias,
+            pcf_samples: shadow_map_config.pcf_samples,
+            pcf_radius: shadow_map_config.pcf_radius,
         });
 
         let point_light_view_mesh_texture = texture_cache.get(

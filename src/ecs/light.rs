@@ -1,5 +1,7 @@
 use bevy::{
-    ecs::{component::Component, entity::Entity}, math::bounding::Aabb2d, render::{color::Color, texture::ColorAttachment, view::RenderLayers}
+    ecs::component::Component,
+    math::bounding::Aabb2d,
+    render::{color::Color, texture::ColorAttachment, view::RenderLayers},
 };
 
 #[cfg(feature = "debug")]

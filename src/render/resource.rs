@@ -1,10 +1,6 @@
 use bevy::{
-    ecs::{
-        component::Component,
-        system::Resource,
-        world::{FromWorld, World},
-    },
-    math::{Mat4, UVec3, Vec2, Vec4},
+    ecs::{component::Component, system::Resource},
+    math::{UVec3, Vec2, Vec4},
     render::{
         render_resource::{
             AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
@@ -15,12 +11,9 @@ use bevy::{
         renderer::{RenderDevice, RenderQueue},
         texture::GpuImage,
     },
-    transform::components::GlobalTransform,
 };
 
-use super::{
-    extract::ExtractedPointLight2d, prepare::DynamicUniformIndex, SHADOW_PREPASS_WORKGROUP_SIZE,
-};
+use super::{prepare::DynamicUniformIndex, SHADOW_PREPASS_WORKGROUP_SIZE};
 
 #[derive(ShaderType, Clone)]
 pub struct GpuPointLight2d {
@@ -70,6 +63,10 @@ impl GpuLights2d {
 pub struct GpuShadowMapMeta {
     pub index: u32,
     pub size: u32,
+    pub offset: Vec2,
+    pub bias: f32,
+    pub pcf_samples: u32,
+    pub pcf_radius: f32,
 }
 
 #[derive(Resource, Default)]
