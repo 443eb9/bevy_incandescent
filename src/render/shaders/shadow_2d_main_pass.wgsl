@@ -47,11 +47,10 @@ fn get_caster_distance_v(rel_ss: vec2f, i_light: u32) -> f32 {
 }
 
 fn get_caster_distance(rel_ss: vec2f, i_light: u32) -> f32 {
-    // Because the proj mat is doubled, here the dist should also be doubled
     if abs(rel_ss.y) < abs(rel_ss.x) {
-        return get_caster_distance_h(rel_ss, i_light) * 2.;
+        return get_caster_distance_h(rel_ss, i_light);
     } else {
-        return get_caster_distance_v(rel_ss, i_light) * 2.;
+        return get_caster_distance_v(rel_ss, i_light);
     }
 }
 
@@ -72,15 +71,12 @@ fn pcf(rel_ss: vec2f, sample_count: u32, sample_radius: f32, i_light: u32) -> f3
 }
 
 @fragment
+fn dbg_output_shadow_map(in: FullscreenVertexOutput) -> @location(0) vec4f {
+    return textureLoad(shadow_map, vec2u(in.uv * vec2f(shadow_map_meta.size)), 0);
+}
+
+@fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
-    // let scale = 512u >> 8u;
-    // let px = vec2f(in.uv.x, 1. - in.uv.y) * vec2f(f32(scale), 512.);
-    // let color = pow(textureLoad(shadow_map, vec2i(px), 0), vec4f(2.2));
-    // // return vec4f(color.r, 0., 0., 1.);
-    // return color;
-
-    // return vec4f(px / 512., 0., 1.);
-
     let screen_size = 2. * vec2f(main_view.inverse_projection[0][0], main_view.inverse_projection[1][1]);
     let px = in.uv * screen_size;
 

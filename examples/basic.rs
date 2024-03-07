@@ -1,9 +1,13 @@
 use bevy::{
     app::{App, PluginGroup, Startup},
+    asset::AssetServer,
     core_pipeline::core_2d::Camera2dBundle,
-    ecs::system::Commands,
+    ecs::system::{Commands, Res},
     math::Vec2,
-    render::{color::Color, view::{Msaa, NoFrustumCulling}},
+    render::{
+        color::Color,
+        view::{Msaa, NoFrustumCulling},
+    },
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
     window::{PresentMode, Window, WindowPlugin, WindowResolution},
@@ -31,6 +35,7 @@ fn main() {
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(1280., 720.),
+                    // resolution: WindowResolution::new(500., 500.),
                     present_mode: PresentMode::Immediate,
                     ..Default::default()
                 }),
@@ -45,7 +50,7 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let mut rd = StdRng::seed_from_u64(1);
@@ -67,10 +72,20 @@ fn setup(mut commands: Commands) {
                 ),
                 ..Default::default()
             },
-            NoFrustumCulling,
+            // NoFrustumCulling,
             ShadowCaster2dBundle::default(),
         ));
     }
+
+    commands.spawn(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::splat(80.)),
+            ..Default::default()
+        },
+        texture: asset_server.load("irregular.png"),
+        transform: Transform::from_xyz(-7.7, -94.5, 0.),
+        ..Default::default()
+    });
 
     commands.spawn(PointLight2dBundle {
         point_light: PointLight2d {

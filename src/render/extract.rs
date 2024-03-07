@@ -48,9 +48,7 @@ pub fn extract_point_lights(
                         *transform,
                         visible_entities.clone(),
                         ExtractedView {
-                            // TODO I have no idea why the size should be doubled
-                            //      The shadow map will be clipped if the size is not doubled
-                            projection: shadow_map_config.get_proj_mat(light.range * 2.),
+                            projection: shadow_map_config.get_proj_mat(light.range),
                             transform: *transform,
                             view_projection: None,
                             hdr: false,

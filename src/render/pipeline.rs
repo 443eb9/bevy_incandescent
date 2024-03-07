@@ -242,6 +242,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
                         shader: SHADOW_MAIN_PASS_SHADER,
                         shader_defs: get_shader_defs(),
                         entry_point: "fragment".into(),
+                        // entry_point: "dbg_output_shadow_map".into(),
                         targets: vec![Some(ColorTargetState {
                             format: TextureFormat::bevy_default(),
                             blend: None,

@@ -5,11 +5,13 @@ use bevy::{
     ecs::schedule::IntoSystemConfigs,
     math::UVec3,
     render::{
+        camera::{camera_system, OrthographicProjection, PerspectiveProjection, Projection},
         render_graph::RenderGraphApp,
         render_resource::{Shader, TextureFormat},
-        view::{RenderLayers, VisibilitySystems},
+        view::{update_frusta, RenderLayers, VisibilitySystems},
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
+    transform::TransformSystem,
 };
 
 use crate::{
@@ -103,8 +105,20 @@ impl Plugin for IncandescentRenderPlugin {
             PostUpdate,
             (
                 visibility::calc_light_bounds.in_set(VisibilitySystems::CalculateBounds),
-                visibility::update_light_frusta.in_set(VisibilitySystems::UpdateOrthographicFrusta),
-                visibility::check_caster_visibility.in_set(VisibilitySystems::CheckVisibility),
+                visibility::update_light_frusta
+                    .in_set(VisibilitySystems::UpdateOrthographicFrusta)
+                    .after(camera_system::<OrthographicProjection>)
+                    .after(TransformSystem::TransformPropagate)
+                    .ambiguous_with(update_frusta::<PerspectiveProjection>)
+                    .ambiguous_with(update_frusta::<Projection>),
+                visibility::check_caster_visibility
+                    .in_set(VisibilitySystems::CheckVisibility)
+                    .after(VisibilitySystems::CalculateBounds)
+                    .after(VisibilitySystems::UpdateOrthographicFrusta)
+                    .after(VisibilitySystems::UpdatePerspectiveFrusta)
+                    .after(VisibilitySystems::UpdateProjectionFrusta)
+                    .after(VisibilitySystems::VisibilityPropagate)
+                    .after(TransformSystem::TransformPropagate),
             ),
         );
 
