@@ -39,10 +39,10 @@ impl Default for ShadowMap2dConfig {
             near: -1000.,
             far: 1000.,
             size: 512,
-            offset: Vec2::new(-5.5, -2.9),
-            bias: 0.001,
-            pcf_samples: 8,
-            pcf_radius: 8.,
+            offset: Vec2::ZERO,
+            bias: 0.,
+            pcf_samples: 32,
+            pcf_radius: 4.,
         }
     }
 }

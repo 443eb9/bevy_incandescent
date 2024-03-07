@@ -71,10 +71,6 @@ pub fn prepare_lights(
     msaa: Res<Msaa>,
 ) {
     assert_eq!(*msaa, Msaa::Off, "MSAA is not supported yet!");
-    assert!(
-        shadow_map_config.pcf_samples <= 32,
-        "PCF samples must be less than 32!"
-    );
 
     let point_light_count = point_lights.iter().count();
     gpu_meta_buffers.clear();
