@@ -72,20 +72,27 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ),
                 ..Default::default()
             },
-            // NoFrustumCulling,
+            // Theoretically frustum culling is handled correctly.
+            // But the truth is that even the `render()` method of the phase item
+            // corresponding to a mesh is called, it's not rendered at all.
+            // Which is really weird.
+            NoFrustumCulling,
             ShadowCaster2dBundle::default(),
         ));
     }
 
-    commands.spawn(SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(Vec2::splat(80.)),
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::splat(80.)),
+                ..Default::default()
+            },
+            texture: asset_server.load("irregular.png"),
+            transform: Transform::from_xyz(-7.7, -94.5, 0.),
             ..Default::default()
         },
-        texture: asset_server.load("irregular.png"),
-        transform: Transform::from_xyz(-7.7, -94.5, 0.),
-        ..Default::default()
-    });
+        ShadowCaster2dBundle::default(),
+    ));
 
     commands.spawn(PointLight2dBundle {
         point_light: PointLight2d {

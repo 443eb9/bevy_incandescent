@@ -25,7 +25,7 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
     }
 
     var d = 1.;
-    if textureLoad(main_tex, px, 0).a > 0.99 {
+    if textureLoad(main_tex, px, 0).a > shadow_map_meta.alpha_threshold {
         d = length(vec2f(px) / vec2f(f32(shadow_map_meta.size)) - vec2f(0.5)) * 2.;
     }
 

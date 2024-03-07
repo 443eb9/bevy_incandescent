@@ -3,7 +3,7 @@ use std::cell::Cell;
 use bevy::{
     ecs::{
         entity::Entity,
-        query::{Has, With},
+        query::{Changed, Has, Or, With},
         system::{Local, ParallelCommands, Query, Res},
     },
     math::Vec3A,
@@ -17,7 +17,10 @@ use bevy::{
 };
 use thread_local::ThreadLocal;
 
-use crate::ecs::{light::PointLight2d, resources::ShadowMap2dConfig};
+use crate::ecs::{
+    light::{PointLight2d, ShadowCaster2d},
+    resources::ShadowMap2dConfig,
+};
 
 pub fn calc_light_bounds(
     commands: ParallelCommands,
@@ -41,7 +44,10 @@ pub fn calc_light_bounds(
 }
 
 pub fn update_light_frusta(
-    mut lights_query: Query<(&GlobalTransform, &mut Frustum, &PointLight2d)>,
+    mut lights_query: Query<
+        (&GlobalTransform, &mut Frustum, &PointLight2d),
+        Or<(Changed<GlobalTransform>, Changed<PointLight2d>)>,
+    >,
     shadow_map_config: Res<ShadowMap2dConfig>,
 ) {
     lights_query
@@ -65,15 +71,18 @@ pub fn check_caster_visibility(
         (&mut VisibleEntities, &Frustum, Option<&RenderLayers>),
         With<PointLight2d>,
     >,
-    mut visible_aabb_query: Query<(
-        Entity,
-        &InheritedVisibility,
-        &mut ViewVisibility,
-        Option<&RenderLayers>,
-        Option<&Aabb>,
-        &GlobalTransform,
-        Has<NoFrustumCulling>,
-    )>,
+    mut visible_aabb_query: Query<
+        (
+            Entity,
+            &InheritedVisibility,
+            &mut ViewVisibility,
+            Option<&RenderLayers>,
+            Option<&Aabb>,
+            &GlobalTransform,
+            Has<NoFrustumCulling>,
+        ),
+        With<ShadowCaster2d>,
+    >,
 ) {
     for (mut visible_entities, frustum, maybe_view_mask) in &mut view_query {
         let view_mask = maybe_view_mask.copied().unwrap_or_default();
@@ -120,7 +129,6 @@ pub fn check_caster_visibility(
                 }
             }
 
-            // This only means it's visible to the light, not necessarily to the camera
             view_visibility.set();
             let cell = thread_queues.get_or_default();
             let mut queue = cell.take();

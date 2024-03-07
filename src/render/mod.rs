@@ -8,18 +8,15 @@ use bevy::{
         camera::{camera_system, OrthographicProjection, PerspectiveProjection, Projection},
         render_graph::RenderGraphApp,
         render_resource::{Shader, TextureFormat},
-        view::{update_frusta, RenderLayers, VisibilitySystems},
+        view::VisibilitySystems,
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
     transform::TransformSystem,
 };
 
-use crate::{
-    ecs::light::ShadowLayers,
-    render::{
-        graph::{Shadow2dMainPass, Shadow2dPrepassNode, Shadow2dReductionNode},
-        resource::GpuMetaBuffers,
-    },
+use crate::render::{
+    graph::{Shadow2dMainPass, Shadow2dPrepassNode, Shadow2dReductionNode},
+    resource::GpuMetaBuffers,
 };
 
 use self::{
@@ -31,6 +28,8 @@ use self::{
     resource::ShadowMap2dStorage,
 };
 
+use bevy::render::view::visibility as bevy_visibility;
+
 pub mod extract;
 pub mod graph;
 pub mod pipeline;
@@ -38,7 +37,6 @@ pub mod prepare;
 pub mod resource;
 pub mod visibility;
 
-pub const DEFAULT_SHADOW_CASTER_LAYER: ShadowLayers = ShadowLayers(RenderLayers::layer(31));
 pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(9489746513229684156489);
 pub const LIGHTING_SHADER: Handle<Shader> = Handle::weak_from_u128(1351654315646451321546531153891);
 pub const SHADOW_TYPES: Handle<Shader> = Handle::weak_from_u128(1123087897454135486384145234748455);
@@ -109,8 +107,8 @@ impl Plugin for IncandescentRenderPlugin {
                     .in_set(VisibilitySystems::UpdateOrthographicFrusta)
                     .after(camera_system::<OrthographicProjection>)
                     .after(TransformSystem::TransformPropagate)
-                    .ambiguous_with(update_frusta::<PerspectiveProjection>)
-                    .ambiguous_with(update_frusta::<Projection>),
+                    .ambiguous_with(bevy_visibility::update_frusta::<PerspectiveProjection>)
+                    .ambiguous_with(bevy_visibility::update_frusta::<Projection>),
                 visibility::check_caster_visibility
                     .in_set(VisibilitySystems::CheckVisibility)
                     .after(VisibilitySystems::CalculateBounds)
@@ -118,7 +116,8 @@ impl Plugin for IncandescentRenderPlugin {
                     .after(VisibilitySystems::UpdatePerspectiveFrusta)
                     .after(VisibilitySystems::UpdateProjectionFrusta)
                     .after(VisibilitySystems::VisibilityPropagate)
-                    .after(TransformSystem::TransformPropagate),
+                    .after(TransformSystem::TransformPropagate)
+                    .after(bevy_visibility::check_visibility),
             ),
         );
 

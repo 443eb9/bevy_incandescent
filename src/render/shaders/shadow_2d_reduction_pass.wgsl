@@ -28,7 +28,7 @@ var<uniform> reduction_time: u32;
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
-    let px = invocation_id.xy;
+    let px = vec2u(invocation_id.x * 2, invocation_id.y);
     let size = shadow_map_meta.size;
     let light_index = invocation_id.z;
 

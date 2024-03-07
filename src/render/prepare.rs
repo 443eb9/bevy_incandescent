@@ -82,6 +82,7 @@ pub fn prepare_lights(
             size: shadow_map_config.size,
             offset: shadow_map_config.offset,
             bias: shadow_map_config.bias,
+            alpha_threshold: shadow_map_config.alpha_threshold,
             pcf_samples: shadow_map_config.pcf_samples,
             pcf_radius: shadow_map_config.pcf_radius,
         });

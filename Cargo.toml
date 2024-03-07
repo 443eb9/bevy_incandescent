@@ -19,9 +19,6 @@ bevy = { version = "0.13", default-features = false, features = [
     "bevy_render",
     "png",
     "bevy_sprite",
-    "multi-threaded",
-    "x11",
-    "wayland",
 ] }
 thread_local = "1.1"
 
@@ -32,6 +29,9 @@ bevy = { version = "0.13", features = [
     "trace_tracy",
     "bevy_winit",
     "bevy_asset",
+    "multi-threaded",
+    "x11",
+    "wayland",
 ] }
 bevy_mod_debugdump = "0.10.0"
 bevy-inspector-egui = "0.23.2"

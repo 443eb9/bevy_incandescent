@@ -7,7 +7,6 @@ use bevy::{
     time::common_conditions::on_real_timer,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-// use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use crate::helpers::camera_movement::camera_control;
 

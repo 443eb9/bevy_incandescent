@@ -94,6 +94,7 @@ pub struct GpuShadowMapMeta {
     pub size: u32,
     pub offset: Vec2,
     pub bias: f32,
+    pub alpha_threshold: f32,
     pub pcf_samples: u32,
     pub pcf_radius: f32,
 }

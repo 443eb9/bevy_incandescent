@@ -15,7 +15,10 @@ use bevy::{
     transform::components::GlobalTransform,
 };
 
-use crate::ecs::{light::PointLight2d, resources::{AmbientLight2d, ShadowMap2dConfig}};
+use crate::ecs::{
+    light::PointLight2d,
+    resources::{AmbientLight2d, ShadowMap2dConfig},
+};
 
 #[derive(Component, Clone, Copy)]
 pub struct ExtractedPointLight2d {
@@ -35,6 +38,7 @@ pub fn extract_point_lights(
         lights_query
             .iter()
             .map(|(entity, light, transform, visible_entities)| {
+                let transform = GlobalTransform::from_translation(transform.translation());
                 (
                     entity,
                     (
@@ -45,11 +49,11 @@ pub fn extract_point_lights(
                             radius: light.radius,
                             spot_light_angles: None,
                         },
-                        *transform,
+                        transform,
                         visible_entities.clone(),
                         ExtractedView {
                             projection: shadow_map_config.get_proj_mat(light.range),
-                            transform: *transform,
+                            transform,
                             view_projection: None,
                             hdr: false,
                             viewport: UVec4::ZERO,
