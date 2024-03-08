@@ -37,13 +37,13 @@ var<storage> point_lights: array<PointLight2d>;
 fn get_caster_distance_h(rel_ss: vec2f, i_light: u32) -> f32 {
     let v0 = (rel_ss.y / abs(rel_ss.x) + 1.) / 2.;
     let px = vec2f(2., f32(shadow_map_meta.size)) * vec2f(rel_ss.x / 2. + 1., v0);
-    return textureLoad(shadow_map, vec2i(px), i_light).r;
+    return textureLoad(shadow_map, vec2i(px), i_light).r * 2.;
 }
 
 fn get_caster_distance_v(rel_ss: vec2f, i_light: u32) -> f32 {
     let v0 = (rel_ss.x / abs(rel_ss.y) + 1.) / 2.;
     let px = vec2f(2., f32(shadow_map_meta.size)) * vec2f(rel_ss.y / 2. + 1., v0);
-    return textureLoad(shadow_map, vec2i(px), i_light).g;
+    return textureLoad(shadow_map, vec2i(px), i_light).g * 2.;
 }
 
 fn get_caster_distance(rel_ss: vec2f, i_light: u32) -> f32 {
@@ -57,7 +57,7 @@ fn get_caster_distance(rel_ss: vec2f, i_light: u32) -> f32 {
 fn pcf(rel_ss: vec2f, sample_count: u32, sample_radius: f32, i_light: u32) -> f32 {
     var visibility = 0.;
     for (var i: u32 = 0; i < sample_count; i++) {
-        let hash = hash23(vec3f(rel_ss, f32(i)));
+        let hash = hash23(vec3f(rel_ss, f32(i)) * 10.);
         let offset = vec2f(cos(hash.x * 6.28318531), sin(hash.x * 6.28318531)) * hash.y;
         let sample_ss = rel_ss + offset * sample_radius;
         let dist = get_caster_distance(sample_ss, i_light);

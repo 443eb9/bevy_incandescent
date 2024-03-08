@@ -52,7 +52,7 @@ pub fn extract_point_lights(
                         transform,
                         visible_entities.clone(),
                         ExtractedView {
-                            projection: shadow_map_config.get_proj_mat(light.range),
+                            projection: shadow_map_config.get_proj_mat(light.range * 2.),
                             transform,
                             view_projection: None,
                             hdr: false,

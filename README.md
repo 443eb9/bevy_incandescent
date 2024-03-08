@@ -6,11 +6,13 @@ A 2d lighting crate for bevy. Currently wip.
 
 ## Future Goals
 
+- PBS Lighting (Normal Mapping, Specular Mapping, and virtual height for lights)
 - MSM Approach (PCSS -> VSM -> MSM step by step)
-- PBS Lighting
+- Compatibility with camera rotation
 - Rim Lights
 - Volumetric Fog
 - Volumetric Clouds
+- Tyndall Effect
 - Screen Space SSAO
 - Support particle system [`bevy_hanabi`](https://github.com/djeedai/bevy_hanabi)
 - Support tilemap system [`bevy_entitiles`](https://github.com/443eb9/bevy_entitiles)
