@@ -120,6 +120,10 @@ impl Node for Shadow2dPrepassNode {
         render_context: &mut RenderContext<'w>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
+        if self.light_view_query.iter_manual(world).next().is_none() {
+            return Ok(());
+        }
+
         let pipeline = world.resource::<Shadow2dPrepassPipeline>();
         let Some(compute_pipeline) = world
             .resource::<PipelineCache>()
@@ -166,12 +170,14 @@ impl Node for Shadow2dPrepassNode {
 
 pub struct Shadow2dDistortPassNode {
     main_view_query: QueryState<(), With<MainShadowCameraDriver>>,
+    light_view_query: QueryState<(), With<ShadowView2d>>,
 }
 
 impl FromWorld for Shadow2dDistortPassNode {
     fn from_world(world: &mut World) -> Self {
         Self {
             main_view_query: world.query_filtered(),
+            light_view_query: world.query_filtered(),
         }
     }
 }
@@ -180,6 +186,7 @@ impl Node for Shadow2dDistortPassNode {
     #[inline]
     fn update(&mut self, world: &mut World) {
         self.main_view_query.update_archetypes(world);
+        self.light_view_query.update_archetypes(world);
     }
 
     fn run<'w>(
@@ -191,6 +198,10 @@ impl Node for Shadow2dDistortPassNode {
         let Ok(_) = self.main_view_query.get_manual(world, graph.view_entity()) else {
             return Ok(());
         };
+
+        if self.light_view_query.iter_manual(world).next().is_none() {
+            return Ok(());
+        }
 
         let pipeline = world.resource::<Shadow2dDistortPassPipeline>();
         let Some(compute_pipeline) = world
@@ -236,12 +247,14 @@ impl Node for Shadow2dDistortPassNode {
 
 pub struct Shadow2dReductionNode {
     main_view_query: QueryState<(), With<MainShadowCameraDriver>>,
+    light_view_query: QueryState<(), With<ShadowView2d>>,
 }
 
 impl FromWorld for Shadow2dReductionNode {
     fn from_world(world: &mut World) -> Self {
         Self {
             main_view_query: world.query_filtered(),
+            light_view_query: world.query_filtered(),
         }
     }
 }
@@ -250,6 +263,7 @@ impl Node for Shadow2dReductionNode {
     #[inline]
     fn update(&mut self, world: &mut World) {
         self.main_view_query.update_archetypes(world);
+        self.light_view_query.update_archetypes(world);
     }
 
     fn run<'w>(
@@ -261,6 +275,10 @@ impl Node for Shadow2dReductionNode {
         let Ok(_) = self.main_view_query.get_manual(world, graph.view_entity()) else {
             return Ok(());
         };
+        
+        if self.light_view_query.iter_manual(world).next().is_none() {
+            return Ok(());
+        }
 
         let pipeline = world.resource::<Shadow2dReductionPipeline>();
         let Some(compute_pipeline) = world
@@ -325,7 +343,7 @@ impl Node for Shadow2dReductionNode {
 
 pub struct Shadow2dMainPass {
     main_view_query: QueryState<(Read<ViewTarget>, Read<ViewUniformOffset>, Read<GpuLights2d>)>,
-    light_view_query: QueryState<Read<ShadowView2d>>,
+    light_view_query: QueryState<(), With<ShadowView2d>>,
 }
 
 impl FromWorld for Shadow2dMainPass {
@@ -356,6 +374,10 @@ impl Node for Shadow2dMainPass {
         else {
             return Ok(());
         };
+
+        if self.light_view_query.iter_manual(world).next().is_none() {
+            return Ok(());
+        }
 
         let pipeline = world.resource::<Shadow2dMainPassPipeline>();
         let Some(render_pipeline) = world

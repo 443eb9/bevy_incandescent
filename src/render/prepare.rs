@@ -73,6 +73,10 @@ pub fn prepare_lights(
     assert_eq!(*msaa, Msaa::Off, "MSAA is not supported yet!");
 
     let point_light_count = point_lights.iter().count();
+    if point_light_count == 0 {
+        return;
+    }
+    
     gpu_meta_buffers.clear();
 
     for (light_index, light_entity) in point_lights.iter_mut().enumerate() {

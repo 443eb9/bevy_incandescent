@@ -6,8 +6,8 @@ A 2d lighting crate for bevy. Currently wip.
 
 ## Future Goals
 
-- PBS Lighting (Normal Mapping, Specular Mapping, and virtual height for lights)
-- MSM Approach (PCSS -> VSM -> MSM step by step)
+- PBR Lighting (Normal Mapping, Specular Mapping, and virtual height for lights)
+- MSM Approach (PCSS -> VSSM -> MSM step by step)
 - Compatibility with camera rotation
 - Rim Lights
 - Volumetric Fog

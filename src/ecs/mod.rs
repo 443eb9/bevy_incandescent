@@ -8,6 +8,7 @@ use self::{
 pub mod bundle;
 pub mod camera;
 pub mod light;
+pub mod pbr;
 pub mod resources;
 
 pub struct IncandescentECSPlugin;

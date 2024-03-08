@@ -41,6 +41,7 @@ rand = "0.8"
 default = []
 debug = ["bevy/bevy_gizmos"]
 compatibility = []
+pbr = []
 
 # [patch.crates-io]
 # bevy = { path = "../bevy" }
@@ -56,3 +57,8 @@ path = "examples/print_graph.rs"
 [[example]]
 name = "stress_test"
 path = "examples/stress_test.rs"
+
+[[example]]
+name = "pbr"
+path = "examples/pbr.rs"
+required-features = ["pbr"]

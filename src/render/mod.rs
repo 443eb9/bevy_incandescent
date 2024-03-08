@@ -16,7 +16,7 @@ use bevy::{
 
 use crate::render::{
     graph::{Shadow2dMainPass, Shadow2dPrepassNode, Shadow2dReductionNode},
-    resource::GpuMetaBuffers,
+    resource::{GpuAmbientLight2dBuffer, GpuMetaBuffers},
 };
 
 use self::{
@@ -125,7 +125,9 @@ impl Plugin for IncandescentRenderPlugin {
             return;
         };
 
-        render_app.init_resource::<GpuMetaBuffers>();
+        render_app
+            .init_resource::<GpuMetaBuffers>()
+            .init_resource::<GpuAmbientLight2dBuffer>();
 
         render_app
             .add_systems(
