@@ -29,8 +29,7 @@ use super::{
     pipeline::{
         Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
         Shadow2dReductionPipeline,
-    },
-    resource::{GpuMetaBuffers, GpuShadowMapMeta, ShadowMap2dStorage},
+    }, GpuMetaBuffers, GpuShadowMapMeta, PoissonDiskBuffer, ShadowMap2dStorage
 };
 
 #[derive(RenderLabel, Debug, Hash, PartialEq, Eq, Clone)]
@@ -395,6 +394,7 @@ impl Node for Shadow2dMainPass {
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
         let view_uniforms = world.resource::<ViewUniforms>();
         let gpu_ambient_light_buffer = world.resource::<GpuAmbientLight2dBuffer>();
+        let poisson_disk_buffer = world.resource::<PoissonDiskBuffer>();
 
         let bind_group = render_context.render_device().create_bind_group(
             "shadow_2d_main_pass",
@@ -406,6 +406,7 @@ impl Node for Shadow2dMainPass {
                 view_uniforms.uniforms.binding().unwrap(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),
                 gpu_ambient_light_buffer.binding(),
+                poisson_disk_buffer.binding(),
                 gpu_lights.point_lights_binding(),
             )),
         );

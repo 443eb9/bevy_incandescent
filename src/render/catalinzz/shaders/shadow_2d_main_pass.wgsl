@@ -1,7 +1,6 @@
 #import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
 #import bevy_render::view::View
 #import bevy_incandescent::{
-    hash::hash23,
     lighting::get_distance_attenuation,
     catalinzz::shadow_2d_types::{AmbientLight2d, PointLight2d, ShadowMapMeta}
 }
@@ -32,6 +31,9 @@ var<uniform> shadow_map_meta: ShadowMapMeta;
 var<uniform> ambient_light: AmbientLight2d;
 
 @group(0) @binding(6)
+var<storage> poisson_disk: array<vec2f>;
+
+@group(0) @binding(7)
 var<storage> point_lights: array<PointLight2d>;
 
 fn get_caster_distance_h(rel_ss: vec2f, i_light: u32) -> f32 {
@@ -57,9 +59,7 @@ fn get_caster_distance(rel_ss: vec2f, i_light: u32) -> f32 {
 fn pcf(rel_ss: vec2f, sample_count: u32, sample_radius: f32, i_light: u32) -> f32 {
     var visibility = 0.;
     for (var i: u32 = 0; i < sample_count; i++) {
-        let hash = hash23(vec3f(rel_ss, f32(i)) * 10.);
-        let offset = vec2f(cos(hash.x * 6.28318531), sin(hash.x * 6.28318531)) * hash.y;
-        let sample_ss = rel_ss + offset * sample_radius;
+        let sample_ss = rel_ss + poisson_disk[i] * sample_radius;
         let dist = get_caster_distance(sample_ss, i_light);
         
         if dist > length(sample_ss) + shadow_map_meta.bias {

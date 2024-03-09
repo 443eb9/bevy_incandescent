@@ -4,6 +4,7 @@ use bevy::{
         system::Resource,
         world::{FromWorld, World},
     },
+    math::Vec2,
     render::{
         render_resource::{
             AddressMode, BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
@@ -23,8 +24,8 @@ use bevy::render::render_resource::binding_types as binding;
 use crate::render::light::{GpuAmbientLight2d, GpuPointLight2d};
 
 use super::{
-    resource::GpuShadowMapMeta, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
-    SHADOW_MAP_FORMAT, SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
+    GpuShadowMapMeta, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_MAP_FORMAT,
+    SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
 };
 
 fn get_shader_defs() -> Vec<ShaderDefVal> {
@@ -211,6 +212,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     binding::uniform_buffer::<GpuShadowMapMeta>(false),
                     // Ambient light
                     binding::uniform_buffer::<GpuAmbientLight2d>(false),
+                    binding::storage_buffer_read_only::<Vec<Vec2>>(false),
                     // Point lights
                     binding::storage_buffer_read_only::<Vec<GpuPointLight2d>>(false),
                 ),

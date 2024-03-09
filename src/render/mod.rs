@@ -53,6 +53,7 @@ impl Plugin for IncandescentRenderPlugin {
 
         app.add_plugins(ExtractResourcePlugin::<AmbientLight2d>::default())
             .init_resource::<AmbientLight2d>()
+            .register_type::<AmbientLight2d>()
             .add_systems(
                 PostUpdate,
                 visibility::calc_light_bounds.in_set(VisibilitySystems::CalculateBounds),
