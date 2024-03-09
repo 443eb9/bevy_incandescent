@@ -10,7 +10,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_incandescent::{
-    ecs::{bundle::PointLight2dBundle, light::PointLight2d},
+    ecs::{bundle::PointLight2dBundle, PointLight2d},
     IncandescentPlugin,
 };
 use helpers::HelpersPlugin;
@@ -27,7 +27,7 @@ fn main() {
                 }),
                 ..Default::default()
             }),
-            IncandescentPlugin,
+            IncandescentPlugin::default(),
             HelpersPlugin { inspector: false },
         ))
         .add_systems(Startup, setup)

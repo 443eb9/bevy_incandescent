@@ -7,14 +7,16 @@ use bevy::{
     transform::components::{GlobalTransform, Transform},
 };
 
-use super::light::{PointLight2d, ShadowCaster2d};
+use super::{PointLight2d, ShadowCaster2d};
 
 #[derive(Bundle, Default)]
 pub struct PointLight2dBundle {
     pub point_light: PointLight2d,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    #[cfg(feature = "catalinzz")]
     pub frustum: Frustum,
+    #[cfg(feature = "catalinzz")]
     pub visible_casters: VisibleEntities,
     pub visibility: Visibility,
     pub view_visibility: ViewVisibility,

@@ -1,4 +1,4 @@
-#define_import_path bevy_incandescent::shadow_2d_types
+#define_import_path bevy_incandescent::catalinzz::shadow_2d_types
 
 struct AmbientLight2d {
     color: vec4f,

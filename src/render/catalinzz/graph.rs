@@ -17,17 +17,20 @@ use bevy::{
     },
 };
 
-use crate::ecs::{camera::MainShadowCameraDriver, light::ShadowView2d};
+use crate::{
+    ecs::catalinzz::{MainShadowCameraDriver, ShadowView2d},
+    render::{
+        light::{GpuAmbientLight2dBuffer, GpuLights2d},
+        DynamicUniformIndex,
+    },
+};
 
 use super::{
     pipeline::{
         Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
         Shadow2dReductionPipeline,
     },
-    prepare::DynamicUniformIndex,
-    resource::{
-        GpuAmbientLight2dBuffer, GpuLights2d, GpuMetaBuffers, GpuShadowMapMeta, ShadowMap2dStorage,
-    },
+    resource::{GpuMetaBuffers, GpuShadowMapMeta, ShadowMap2dStorage},
 };
 
 #[derive(RenderLabel, Debug, Hash, PartialEq, Eq, Clone)]
@@ -275,7 +278,7 @@ impl Node for Shadow2dReductionNode {
         let Ok(_) = self.main_view_query.get_manual(world, graph.view_entity()) else {
             return Ok(());
         };
-        
+
         if self.light_view_query.iter_manual(world).next().is_none() {
             return Ok(());
         }

@@ -3,7 +3,7 @@
 #import bevy_incandescent::{
     hash::hash23,
     lighting::get_distance_attenuation,
-    shadow_2d_types::{AmbientLight2d, PointLight2d, ShadowMapMeta}
+    catalinzz::shadow_2d_types::{AmbientLight2d, PointLight2d, ShadowMapMeta}
 }
 
 @group(0) @binding(0)

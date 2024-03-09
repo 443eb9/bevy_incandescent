@@ -8,7 +8,7 @@ use bevy::{
     transform::components::GlobalTransform,
 };
 
-use crate::ecs::light::PointLight2d;
+use crate::ecs::PointLight2d;
 
 pub struct IncandescentDebugPlugin;
 
@@ -18,7 +18,7 @@ impl Plugin for IncandescentDebugPlugin {
             Update,
             (
                 draw_light_range,
-                // print_light_visible_entities
+                // print_light_visible_entities,
             ),
         );
     }

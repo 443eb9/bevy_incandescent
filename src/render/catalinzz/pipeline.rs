@@ -20,10 +20,11 @@ use bevy::{
 
 use bevy::render::render_resource::binding_types as binding;
 
+use crate::render::light::{GpuAmbientLight2d, GpuPointLight2d};
+
 use super::{
-    resource::{GpuAmbientLight2d, GpuPointLight2d, GpuShadowMapMeta},
-    SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_MAP_FORMAT, SHADOW_PREPASS_SHADER,
-    SHADOW_REDUCTION_PASS_SHADER,
+    resource::GpuShadowMapMeta, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
+    SHADOW_MAP_FORMAT, SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
 };
 
 fn get_shader_defs() -> Vec<ShaderDefVal> {

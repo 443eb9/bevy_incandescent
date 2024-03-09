@@ -10,7 +10,7 @@ use bevy::{
     input::{keyboard::KeyCode, ButtonInput},
     math::Vec2,
     render::{
-        camera::{Camera, CameraProjection, OrthographicProjection},
+        camera::{CameraProjection, OrthographicProjection},
         color::Color,
         view::{Msaa, NoFrustumCulling},
     },
@@ -22,8 +22,7 @@ use bevy::{
 use bevy_incandescent::{
     ecs::{
         bundle::{PointLight2dBundle, ShadowCaster2dBundle},
-        light::PointLight2d,
-        pbr::{HeightTexture, NormalTexture},
+        PointLight2d,
     },
     IncandescentPlugin,
 };
@@ -35,7 +34,7 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins,
-            IncandescentPlugin,
+            IncandescentPlugin::default(),
             HelpersPlugin { inspector: true },
         ))
         .add_systems(Startup, setup)
@@ -74,8 +73,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             texture: asset_server.load("pbr/suzzane-color.png"),
             ..Default::default()
         },
-        HeightTexture::from(asset_server.load("pbr/suzzane-height.png")),
-        NormalTexture::from(asset_server.load("pbr/suzzane-normal.png")),
         ShadowCaster2dBundle::default(),
         NoFrustumCulling,
     ));
@@ -113,7 +110,7 @@ fn light_follow(
         .extend(0.)
         .extend(1.);
     cursor_pos_ndc.y = -cursor_pos_ndc.y;
-    let cursor_pos_ws = camera_transform.compute_matrix().inverse()
+    let cursor_pos_ws = camera_transform.compute_matrix()
         * camera_proj.get_projection_matrix().inverse()
         * cursor_pos_ndc;
 

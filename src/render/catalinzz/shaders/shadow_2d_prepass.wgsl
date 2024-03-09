@@ -1,4 +1,4 @@
-#import bevy_incandescent::shadow_2d_types::ShadowMapMeta;
+#import bevy_incandescent::catalinzz::shadow_2d_types::ShadowMapMeta;
 
 @group(0) @binding(0)
 var main_tex: texture_2d<f32>;

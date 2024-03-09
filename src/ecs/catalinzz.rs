@@ -1,27 +1,19 @@
 use bevy::{
-    ecs::{reflect::ReflectResource, system::Resource},
+    ecs::{component::Component, reflect::ReflectResource, system::Resource},
     math::{Mat4, Vec2},
     reflect::Reflect,
-    render::color::Color,
+    render::{extract_resource::ExtractResource, texture::ColorAttachment},
 };
 
-#[derive(Resource, Clone, Copy, Reflect)]
-#[reflect(Resource)]
-pub struct AmbientLight2d {
-    pub color: Color,
-    pub intensity: f32,
+#[derive(Component)]
+pub struct ShadowView2d {
+    pub attachment: ColorAttachment,
 }
 
-impl Default for AmbientLight2d {
-    fn default() -> Self {
-        Self {
-            color: Color::WHITE,
-            intensity: 1.,
-        }
-    }
-}
+#[derive(Component)]
+pub struct MainShadowCameraDriver;
 
-#[derive(Resource, Clone, Copy, Reflect)]
+#[derive(Resource, ExtractResource, Clone, Copy, Reflect)]
 #[reflect(Resource)]
 pub struct ShadowMap2dConfig {
     pub near: f32,
