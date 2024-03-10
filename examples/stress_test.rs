@@ -10,7 +10,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_incandescent::{
-    ecs::{bundle::PointLight2dBundle, PointLight2d},
+    ecs::{PointLight2d, PointLight2dBundle},
     IncandescentPlugin,
 };
 use helpers::HelpersPlugin;

@@ -25,17 +25,19 @@ use bevy::{
 };
 
 use crate::{
-    ecs::{AmbientLight2d, PointLight2d},
+    ecs::{AmbientLight2d, PointLight2d, SpotLight2d},
     render::light::{GpuAmbientLight2d, GpuAmbientLight2dBuffer},
 };
 
 use self::light::{GpuLights2d, GpuPointLight2d};
 
+#[cfg(feature = "catalinzz")]
 pub mod catalinzz;
 pub mod light;
 pub mod visibility;
 
-pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(9489746513229684156489);
+pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(94897465132296841564891368745312587);
+pub const MATH_SHADER: Handle<Shader> = Handle::weak_from_u128(45341649741532875412078496512304512);
 pub const LIGHTING_SHADER: Handle<Shader> = Handle::weak_from_u128(1351654315646451321546531153891);
 
 pub struct IncandescentRenderPlugin;
@@ -43,6 +45,8 @@ pub struct IncandescentRenderPlugin;
 impl Plugin for IncandescentRenderPlugin {
     fn build(&self, app: &mut App) {
         load_internal_asset!(app, HASH_SHADER, "shaders/hash.wgsl", Shader::from_wgsl);
+
+        load_internal_asset!(app, MATH_SHADER, "shaders/math.wgsl", Shader::from_wgsl);
 
         load_internal_asset!(
             app,
@@ -63,7 +67,7 @@ impl Plugin for IncandescentRenderPlugin {
 
         render_app
             .init_resource::<GpuAmbientLight2dBuffer>()
-            .add_systems(ExtractSchedule, extract_point_lights)
+            .add_systems(ExtractSchedule, extract_lights)
             .add_systems(Render, prepare_lights.in_set(RenderSet::Prepare));
     }
 }
@@ -94,15 +98,16 @@ pub struct ExtractedPointLight2d {
     pub intensity: f32,
     pub range: f32,
     pub radius: f32,
-    pub spot_light_angles: Option<(f32, f32)>,
+    pub spot_light_angles: [f32; 2],
 }
 
-pub fn extract_point_lights(
+pub fn extract_lights(
     mut commands: Commands,
-    lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform, &VisibleEntities)>>,
+    point_lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform, &VisibleEntities)>>,
+    spot_lights_query: Extract<Query<(Entity, &SpotLight2d, &GlobalTransform, &VisibleEntities)>>,
 ) {
     commands.insert_or_spawn_batch(
-        lights_query
+        point_lights_query
             .iter()
             .map(|(entity, light, transform, visible_entities)| {
                 let transform = GlobalTransform::from_translation(transform.translation());
@@ -114,7 +119,31 @@ pub fn extract_point_lights(
                             intensity: light.intensity,
                             range: light.range,
                             radius: light.radius,
-                            spot_light_angles: None,
+                            spot_light_angles: [0., std::f32::consts::TAU],
+                        },
+                        transform,
+                        visible_entities.clone(),
+                        RenderPhase::<Transparent2d>::default(),
+                    ),
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
+
+    commands.insert_or_spawn_batch(
+        spot_lights_query
+            .iter()
+            .map(|(entity, light, transform, visible_entities)| {
+                let transform = GlobalTransform::from_translation(transform.translation());
+                (
+                    entity,
+                    (
+                        ExtractedPointLight2d {
+                            color: light.color,
+                            intensity: light.intensity,
+                            range: light.range,
+                            radius: light.radius,
+                            spot_light_angles: light.sector.into_angles(),
                         },
                         transform,
                         visible_entities.clone(),
@@ -180,6 +209,7 @@ pub fn prepare_lights(
                 radius_ss: radius_ndc * screen_size.x,
                 range_ss: range_ndc * screen_size.x,
                 color: light.color.rgba_linear_to_vec4(),
+                angles: light.spot_light_angles,
             });
         }
 

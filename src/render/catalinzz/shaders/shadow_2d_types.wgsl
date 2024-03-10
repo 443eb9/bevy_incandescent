@@ -11,6 +11,7 @@ struct PointLight2d {
     radius_ss: f32,
     range_ss: f32,
     color: vec4f,
+    angles: array<f32, 2>,
 }
 
 struct ShadowMapMeta {

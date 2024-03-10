@@ -1,9 +1,11 @@
 use bevy::app::{App, Plugin};
+use ecs::IncandescentEcsPlugin;
 use render::IncandescentRenderPlugin;
 
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod ecs;
+pub mod math;
 pub mod render;
 
 const APPRACHES: [LightingApproach; 1] = [
@@ -32,6 +34,7 @@ impl Plugin for IncandescentPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             IncandescentRenderPlugin,
+            IncandescentEcsPlugin,
             #[cfg(feature = "debug")]
             debug::IncandescentDebugPlugin,
         ));

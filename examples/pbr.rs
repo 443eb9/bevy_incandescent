@@ -1,28 +1,28 @@
 use bevy::{
     app::{App, Startup, Update},
-    asset::AssetServer,
+    asset::{AssetServer, Assets},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
         query::With,
-        system::{Commands, Query, Res},
+        system::{Commands, Query, Res, ResMut},
     },
     input::{keyboard::KeyCode, ButtonInput},
-    math::Vec2,
+    math::{primitives::Rectangle, Vec2},
     render::{
         camera::{CameraProjection, OrthographicProjection},
         color::Color,
+        mesh::Mesh,
         view::{Msaa, NoFrustumCulling},
     },
-    sprite::{Sprite, SpriteBundle},
     transform::components::{GlobalTransform, Transform},
     window::Window,
     DefaultPlugins,
 };
 use bevy_incandescent::{
     ecs::{
-        bundle::{PointLight2dBundle, ShadowCaster2dBundle},
-        PointLight2d,
+        pbr::{PbrMesh2dBundle, StandardMaterial2d},
+        PointLight2d, PointLight2dBundle, ShadowCaster2dBundle,
     },
     IncandescentPlugin,
 };
@@ -46,7 +46,12 @@ fn main() {
 #[derive(Component)]
 struct ControllableLight;
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardMaterial2d>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     commands.spawn((
@@ -65,12 +70,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ));
 
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::splat(512.)),
+        PbrMesh2dBundle {
+            material: materials.add(StandardMaterial2d {
+                base_color_texture: Some(asset_server.load("pbr/suzzane-color.png")),
+                normal_map_texture: Some(asset_server.load("pbr/suzzane-normal.png")),
                 ..Default::default()
-            },
-            texture: asset_server.load("pbr/suzzane-color.png"),
+            }),
+            mesh: meshes.add(Rectangle::new(512., 512.)),
             ..Default::default()
         },
         ShadowCaster2dBundle::default(),

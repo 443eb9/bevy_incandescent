@@ -16,12 +16,33 @@ use bevy::{
 };
 use thread_local::ThreadLocal;
 
-use crate::ecs::{catalinzz::ShadowMap2dConfig, PointLight2d, ShadowCaster2d};
+use crate::ecs::{catalinzz::ShadowMap2dConfig, PointLight2d, ShadowCaster2d, SpotLight2d};
 
-pub fn update_light_frusta(
+pub fn update_point_light_frusta(
     mut lights_query: Query<
         (&GlobalTransform, &mut Frustum, &PointLight2d),
         Or<(Changed<GlobalTransform>, Changed<PointLight2d>)>,
+    >,
+    shadow_map_config: Res<ShadowMap2dConfig>,
+) {
+    lights_query
+        .par_iter_mut()
+        .for_each(|(transform, mut frustum, light)| {
+            let view_proj =
+                shadow_map_config.get_proj_mat(light.range) * transform.compute_matrix().inverse();
+            *frustum = Frustum::from_view_projection_custom_far(
+                &view_proj,
+                &transform.translation(),
+                &transform.back(),
+                shadow_map_config.far,
+            );
+        });
+}
+
+pub fn update_spot_light_frusta(
+    mut lights_query: Query<
+        (&GlobalTransform, &mut Frustum, &SpotLight2d),
+        Or<(Changed<GlobalTransform>, Changed<SpotLight2d>)>,
     >,
     shadow_map_config: Res<ShadowMap2dConfig>,
 ) {
@@ -44,7 +65,7 @@ pub fn check_caster_visibility(
     mut thread_queues: Local<ThreadLocal<Cell<Vec<Entity>>>>,
     mut view_query: Query<
         (&mut VisibleEntities, &Frustum, Option<&RenderLayers>),
-        With<PointLight2d>,
+        Or<(With<PointLight2d>, With<SpotLight2d>)>,
     >,
     mut visible_aabb_query: Query<
         (

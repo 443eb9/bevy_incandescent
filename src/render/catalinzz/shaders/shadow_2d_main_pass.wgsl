@@ -4,6 +4,7 @@
     lighting::get_distance_attenuation,
     catalinzz::shadow_2d_types::{AmbientLight2d, PointLight2d, ShadowMapMeta}
 }
+#import bevy_incandescent::math::{is_point_inside_sector}
 
 @group(0) @binding(0)
 var main_tex: texture_2d<f32>;
@@ -94,7 +95,7 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
         let rel_dist = length(rel_ss);
         let pcf_radius_rel = shadow_map_meta.pcf_radius / light_range_ss;
 
-        if length(rel_px_ss) < light_range_ss {
+        if is_point_inside_sector(rel_px_ss * vec2f(1., -1.), vec2f(0.), light_range_ss, (*light).angles) {
             var visibility = pcf(rel_ss, shadow_map_meta.pcf_samples, pcf_radius_rel, i_light);
             visibility *= 1. - saturate(
                 (rel_px_dist - light_radius_ss) / (light_range_ss - light_radius_ss)
@@ -102,6 +103,15 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
             let attend_color = visibility * visibility * (*light).intensity * light_color.rgb;
             color += attend_color;
         }
+
+        // if length(rel_px_ss) < light_range_ss {
+        //     var visibility = pcf(rel_ss, shadow_map_meta.pcf_samples, pcf_radius_rel, i_light);
+        //     visibility *= 1. - saturate(
+        //         (rel_px_dist - light_radius_ss) / (light_range_ss - light_radius_ss)
+        //     );
+        //     let attend_color = visibility * visibility * (*light).intensity * light_color.rgb;
+        //     color += attend_color;
+        // }
     }
 
     return textureSample(main_tex, main_tex_sampler, in.uv)

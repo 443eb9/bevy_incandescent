@@ -33,7 +33,7 @@ use fast_poisson::Poisson2D;
 use crate::{
     ecs::{
         catalinzz::{MainShadowCameraDriver, ShadowMap2dConfig, ShadowView2d},
-        PointLight2d,
+        PointLight2d, SpotLight2d,
     },
     render::catalinzz::graph::{
         Shadow2dDistortPassNode, Shadow2dMainPass, Shadow2dMeshPassNode, Shadow2dNode,
@@ -111,7 +111,10 @@ impl Plugin for CatalinzzApproachPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    visibility::update_light_frusta
+                    (
+                        visibility::update_point_light_frusta,
+                        visibility::update_spot_light_frusta,
+                    )
                         .in_set(VisibilitySystems::UpdateOrthographicFrusta)
                         .after(camera_system::<OrthographicProjection>)
                         .after(TransformSystem::TransformPropagate)
@@ -178,11 +181,32 @@ impl Plugin for CatalinzzApproachPlugin {
 
 pub fn extract_light_view(
     mut commands: Commands,
-    lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform)>>,
+    point_lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform)>>,
+    spot_lights_query: Extract<Query<(Entity, &SpotLight2d, &GlobalTransform)>>,
     shadow_map_config: Extract<Res<ShadowMap2dConfig>>,
 ) {
     commands.insert_or_spawn_batch(
-        lights_query
+        point_lights_query
+            .iter()
+            .map(|(entity, light, transform)| {
+                let transform = GlobalTransform::from_translation(transform.translation());
+                (
+                    entity,
+                    ExtractedView {
+                        projection: shadow_map_config.get_proj_mat(light.range * 2.),
+                        transform,
+                        view_projection: None,
+                        hdr: false,
+                        viewport: UVec4::ZERO,
+                        color_grading: ColorGrading::default(),
+                    },
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
+
+    commands.insert_or_spawn_batch(
+        spot_lights_query
             .iter()
             .map(|(entity, light, transform)| {
                 let transform = GlobalTransform::from_translation(transform.translation());

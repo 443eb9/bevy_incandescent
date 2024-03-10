@@ -3,6 +3,7 @@
 - Removed redundant components in `ShadowCaster2dBundle`.
 - Moved redundant Bevy features into dev-dependencies.
 - Added `alpha_threshold` to `ShadowMap2dConfig`.
+- Samples of PCF is no longer limited to 32.
 
 # What's Fixed:
 

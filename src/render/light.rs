@@ -44,6 +44,7 @@ pub struct GpuPointLight2d {
     pub radius_ss: f32,
     pub range_ss: f32,
     pub color: Vec4,
+    pub angles: [f32; 2],
 }
 
 #[derive(Component)]
