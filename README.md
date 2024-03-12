@@ -8,6 +8,8 @@ A 2d lighting crate for bevy. Currently wip.
 
 - PBR Lighting (Normal Mapping, Specular Mapping, and virtual height for lights)
 - MSM Approach (PCSS -> VSSM -> MSM step by step)
+- SDF+RayMarching Approach Implementation
+- Edge Lighting
 - Compatibility with camera rotation
 - Rim Lights
 - Volumetric Fog

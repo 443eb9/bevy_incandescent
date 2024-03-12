@@ -1,4 +1,4 @@
-// 10600KF 3070 rendering at 60fps with 250 lights
+// 10600KF 3070 rendering at 60fps with 45 lights 0.2.0
 
 use bevy::{
     app::{App, Startup},
@@ -38,7 +38,7 @@ fn main() {
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
-    for _ in 0..250 {
+    for _ in 0..45 {
         commands.spawn(PointLight2dBundle {
             point_light: PointLight2d {
                 color: Color::ORANGE_RED,

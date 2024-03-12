@@ -1,6 +1,6 @@
 [package]
 name = "bevy_incandescent"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_incandescent"
@@ -20,8 +20,8 @@ bevy = { version = "0.13", default-features = false, features = [
     "png",
     "bevy_sprite",
 ] }
-fast_poisson = "1.0.0"
-radsort = "0.1.0"
+fast_poisson = "1.0"
+radsort = "0.1"
 thread_local = "1.1"
 
 [dev-dependencies]
