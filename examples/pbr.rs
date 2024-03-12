@@ -34,7 +34,7 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins,
-            IncandescentPlugin::default(),
+            IncandescentPlugin,
             HelpersPlugin { inspector: true },
         ))
         .add_systems(Startup, setup)

@@ -27,7 +27,7 @@ fn main() {
                 }),
                 ..Default::default()
             }),
-            IncandescentPlugin::default(),
+            IncandescentPlugin,
             HelpersPlugin { inspector: false },
         ))
         .add_systems(Startup, setup)

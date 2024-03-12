@@ -39,7 +39,7 @@ fn main() {
                 }),
                 ..Default::default()
             }),
-            IncandescentPlugin::default(),
+            IncandescentPlugin,
             HelpersPlugin { inspector: true },
         ))
         .add_systems(Startup, setup)
@@ -104,17 +104,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     });
 
-    // commands.spawn(PointLight2dBundle {
-    //     point_light: PointLight2d {
-    //         color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-    //         intensity: 0.8,
-    //         range: 400.,
-    //         radius: 30.,
-    //     },
-    //     transform: Transform::from_xyz(-50., -25., 0.),
-    //     ..Default::default()
-    // });
-
     commands.spawn(SpotLight2dBundle {
         spot_light: SpotLight2d {
             color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
@@ -123,7 +112,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             radius: 30.,
             sector: CircularSector::Angles {
                 start: std::f32::consts::FRAC_PI_6,
-                end: std::f32::consts::FRAC_PI_2,
+                end: std::f32::consts::FRAC_PI_2 + std::f32::consts::PI,
             },
         },
         transform: Transform::from_xyz(-50., -25., 0.),

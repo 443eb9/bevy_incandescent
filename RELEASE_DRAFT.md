@@ -4,6 +4,7 @@
 - Moved redundant Bevy features into dev-dependencies.
 - Added `alpha_threshold` to `ShadowMap2dConfig`.
 - Samples of PCF is no longer limited to 32.
+- Added `SpotLight2d`
 
 # What's Fixed:
 

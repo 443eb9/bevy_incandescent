@@ -8,27 +8,10 @@ pub mod ecs;
 pub mod math;
 pub mod render;
 
-const APPRACHES: [LightingApproach; 1] = [
-    #[cfg(feature = "catalinzz")]
-    LightingApproach::Catalinzz,
-    #[cfg(not(feature = "catalinzz"))]
-    LightingApproach::None,
-];
+#[cfg(not(any(feature = "catalinzz")))]
+compile_error!("Incandescent requires at least one render approach feature to be enabled!");
 
-pub struct IncandescentPlugin {
-    pub approach: LightingApproach,
-}
-
-impl Default for IncandescentPlugin {
-    fn default() -> Self {
-        Self {
-            approach: *APPRACHES
-                .iter()
-                .find(|a| (**a) != LightingApproach::None)
-                .unwrap_or_else(|| panic!("No lighting approach is enabled")),
-        }
-    }
-}
+pub struct IncandescentPlugin;
 
 impl Plugin for IncandescentPlugin {
     fn build(&self, app: &mut App) {
@@ -37,21 +20,8 @@ impl Plugin for IncandescentPlugin {
             IncandescentEcsPlugin,
             #[cfg(feature = "debug")]
             debug::IncandescentDebugPlugin,
-        ));
-
-        match self.approach {
-            LightingApproach::None => unreachable!(),
             #[cfg(feature = "catalinzz")]
-            LightingApproach::Catalinzz => {
-                app.add_plugins(render::catalinzz::CatalinzzApproachPlugin);
-            }
-        }
+            render::catalinzz::CatalinzzApproachPlugin,
+        ));
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LightingApproach {
-    None,
-    #[cfg(feature = "catalinzz")]
-    Catalinzz,
 }
