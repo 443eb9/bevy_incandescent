@@ -4,6 +4,9 @@
 var main_tex: texture_2d<f32>;
 
 @group(0) @binding(1)
+var alpha_map: texture_storage_2d_array<r32float, write>;
+
+@group(0) @binding(2)
 var shadow_map: texture_storage_2d_array<
 #ifdef COMPATIBILITY
     rgba32float,
@@ -13,7 +16,7 @@ var shadow_map: texture_storage_2d_array<
     write
 >;
 
-@group(0) @binding(2)
+@group(0) @binding(3)
 var<uniform> shadow_map_meta: ShadowMapMeta;
 
 @compute @workgroup_size(16, 16, 1)
@@ -25,13 +28,20 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
     }
 
     var d = 1.;
-    if textureLoad(main_tex, px, 0).a > shadow_map_meta.alpha_threshold {
+    let alpha = textureLoad(main_tex, px, 0).a;
+    if alpha > shadow_map_meta.alpha_threshold {
         d = length(vec2f(px) / vec2f(f32(shadow_map_meta.size)) - vec2f(0.5)) * 2.;
+        textureStore(
+            alpha_map,
+            px,
+            shadow_map_meta.index,
+            vec4f(alpha, 0., 0., 0.),
+        );
     }
 
     textureStore(
         shadow_map,
-        vec2u(px.x, px.y),
+        px,
         shadow_map_meta.index,
         vec4f(d, 0., 0., 0.),
     );

@@ -32,7 +32,7 @@ impl Default for ShadowMap2dConfig {
             far: 1000.,
             size: 512,
             offset: Vec2::ZERO,
-            bias: 0.,
+            bias: 0.005,
             alpha_threshold: 0.9,
             pcf: Default::default(),
         }

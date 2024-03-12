@@ -144,6 +144,7 @@ impl Node for Shadow2dPrepassNode {
                 &pipeline.prepass_layout,
                 &BindGroupEntries::sequential((
                     &shadow_view.attachment.texture.default_view,
+                    shadow_map_storage.alpha_map_view(),
                     shadow_map_storage.texture_view_primary(),
                     gpu_meta_buffers.shadow_map_meta_buffer_binding(),
                 )),
@@ -402,6 +403,7 @@ impl Node for Shadow2dMainPass {
             &BindGroupEntries::sequential((
                 post_process.source,
                 &pipeline.main_texture_sampler,
+                shadow_map_storage.alpha_map_view(),
                 shadow_map_storage.final_texture_view(),
                 view_uniforms.uniforms.binding().unwrap(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),

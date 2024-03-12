@@ -13,6 +13,9 @@ var main_tex: texture_2d<f32>;
 var main_tex_sampler: sampler;
 
 @group(0) @binding(2)
+var alpha_map: texture_storage_2d_array<r32float, read>;
+
+@group(0) @binding(3)
 var shadow_map: texture_storage_2d_array<
 #ifdef COMPATIBILITY
     rgba32float,
@@ -22,19 +25,19 @@ var shadow_map: texture_storage_2d_array<
     read
 >;
 
-@group(0) @binding(3)
+@group(0) @binding(4)
 var<uniform> main_view: View;
 
-@group(0) @binding(4)
+@group(0) @binding(5)
 var<uniform> shadow_map_meta: ShadowMapMeta;
 
-@group(0) @binding(5)
+@group(0) @binding(6)
 var<uniform> ambient_light: AmbientLight2d;
 
-@group(0) @binding(6)
+@group(0) @binding(7)
 var<storage> poisson_disk: array<vec2f>;
 
-@group(0) @binding(7)
+@group(0) @binding(8)
 var<storage> point_lights: array<PointLight2d>;
 
 fn get_caster_distance_h(rel_ss: vec2f, i_light: u32) -> f32 {
@@ -63,12 +66,18 @@ fn pcf(rel_ss: vec2f, sample_count: u32, sample_radius: f32, i_light: u32) -> f3
         let sample_ss = rel_ss + poisson_disk[i] * sample_radius;
         let dist = get_caster_distance(sample_ss, i_light);
         
-        if dist > length(sample_ss) + shadow_map_meta.bias {
+        if dist > length(sample_ss) - shadow_map_meta.bias
+           && get_alpha(sample_ss, i_light) < shadow_map_meta.alpha_threshold {
             visibility += 1.;
         }
     }
     visibility /= f32(sample_count);
     return visibility;
+}
+
+fn get_alpha(rel_ss: vec2f, i_light: u32) -> f32 {
+    let px = (rel_ss / 2. + 1.) / 2. * f32(shadow_map_meta.size);
+    return textureLoad(alpha_map, vec2i(px), i_light).r;
 }
 
 @fragment

@@ -24,8 +24,8 @@ use bevy::render::render_resource::binding_types as binding;
 use crate::render::light::{GpuAmbientLight2d, GpuPointLight2d};
 
 use super::{
-    GpuShadowMapMeta, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_MAP_FORMAT,
-    SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
+    GpuShadowMapMeta, ALPHA_MAP_FORMAT, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
+    SHADOW_MAP_FORMAT, SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
 };
 
 fn get_shader_defs() -> Vec<ShaderDefVal> {
@@ -53,6 +53,11 @@ impl FromWorld for Shadow2dPrepassPipeline {
                 (
                     // Main texture
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
+                    // Alpha map
+                    binding::texture_storage_2d_array(
+                        ALPHA_MAP_FORMAT,
+                        StorageTextureAccess::WriteOnly,
+                    ),
                     // Shadow map
                     binding::texture_storage_2d_array(
                         SHADOW_MAP_FORMAT,
@@ -201,6 +206,11 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     // Main texture
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
                     binding::sampler(SamplerBindingType::Filtering),
+                    // Alpha map
+                    binding::texture_storage_2d_array(
+                        ALPHA_MAP_FORMAT,
+                        StorageTextureAccess::ReadOnly,
+                    ),
                     // Shadow map
                     binding::texture_storage_2d_array(
                         SHADOW_MAP_FORMAT,

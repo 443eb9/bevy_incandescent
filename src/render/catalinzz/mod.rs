@@ -66,6 +66,8 @@ pub const SHADOW_MAP_FORMAT: TextureFormat = TextureFormat::Rgba32Float;
 #[cfg(not(feature = "compatibility"))]
 pub const SHADOW_MAP_FORMAT: TextureFormat = TextureFormat::Rg32Float;
 
+pub const ALPHA_MAP_FORMAT: TextureFormat = TextureFormat::R32Float;
+
 pub struct CatalinzzApproachPlugin;
 
 impl Plugin for CatalinzzApproachPlugin {
@@ -303,6 +305,7 @@ pub struct ShadowMap2dStorage {
     meta: ShadowMap2dMeta,
     primary_shadow_map: Option<GpuImage>,
     secondary_shadow_map: Option<GpuImage>,
+    alpha_map: Option<GpuImage>,
     work_group_count_per_light: UVec3,
     work_group_count_total: UVec3,
     num_reductions: u32,
@@ -320,8 +323,9 @@ impl ShadowMap2dStorage {
         }
 
         self.meta = meta;
-        self.primary_shadow_map = Some(self.create_shadow_map(render_device));
-        self.secondary_shadow_map = Some(self.create_shadow_map(render_device));
+        self.primary_shadow_map = Some(self.create_shadow_map(render_device, SHADOW_MAP_FORMAT));
+        self.secondary_shadow_map = Some(self.create_shadow_map(render_device, SHADOW_MAP_FORMAT));
+        self.alpha_map = Some(self.create_shadow_map(render_device, ALPHA_MAP_FORMAT));
         self.work_group_count_per_light = UVec3 {
             x: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.x),
             y: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.y),
@@ -354,6 +358,11 @@ impl ShadowMap2dStorage {
     }
 
     #[inline]
+    pub fn alpha_map_view(&self) -> &TextureView {
+        &self.alpha_map.as_ref().unwrap().texture_view
+    }
+
+    #[inline]
     pub fn final_texture_view(&self) -> &TextureView {
         if self.num_reductions % 2 == 0 {
             self.texture_view_secondary()
@@ -377,7 +386,7 @@ impl ShadowMap2dStorage {
         self.num_reductions
     }
 
-    fn create_shadow_map(&self, render_device: &RenderDevice) -> GpuImage {
+    fn create_shadow_map(&self, render_device: &RenderDevice, format: TextureFormat) -> GpuImage {
         let meta = self.meta;
 
         let shadow_map = render_device.create_texture(&TextureDescriptor {
@@ -390,7 +399,7 @@ impl ShadowMap2dStorage {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: SHADOW_MAP_FORMAT,
+            format,
             usage: TextureUsages::STORAGE_BINDING
                 | TextureUsages::TEXTURE_BINDING
                 | TextureUsages::RENDER_ATTACHMENT,
