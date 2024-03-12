@@ -94,6 +94,7 @@ impl<S: ShaderType> DynamicUniformIndex<S> {
 
 #[derive(Component, Clone, Copy)]
 pub struct ExtractedPointLight2d {
+    pub id: u32,
     pub color: Color,
     pub intensity: f32,
     pub range: f32,
@@ -106,15 +107,19 @@ pub fn extract_lights(
     point_lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform, &VisibleEntities)>>,
     spot_lights_query: Extract<Query<(Entity, &SpotLight2d, &GlobalTransform, &VisibleEntities)>>,
 ) {
+    let mut id = 0;
+
     commands.insert_or_spawn_batch(
         point_lights_query
             .iter()
             .map(|(entity, light, transform, visible_entities)| {
                 let transform = GlobalTransform::from_translation(transform.translation());
+                id += 1;
                 (
                     entity,
                     (
                         ExtractedPointLight2d {
+                            id: id - 1,
                             color: light.color,
                             intensity: light.intensity,
                             range: light.range,
@@ -135,15 +140,17 @@ pub fn extract_lights(
             .iter()
             .map(|(entity, light, transform, visible_entities)| {
                 let transform = GlobalTransform::from_translation(transform.translation());
+                id += 1;
                 (
                     entity,
                     (
                         ExtractedPointLight2d {
+                            id: id - 1,
                             color: light.color,
                             intensity: light.intensity,
                             range: light.range,
                             radius: light.radius,
-                            spot_light_angles: light.sector.into_angles(),
+                            spot_light_angles: light.sector.into_extent(),
                         },
                         transform,
                         visible_entities.clone(),
@@ -158,7 +165,7 @@ pub fn extract_lights(
 pub fn prepare_lights(
     mut commands: Commands,
     main_views: Query<(Entity, &ExtractedView, &VisibleEntities), With<ViewTarget>>,
-    lights_query: Query<(&ExtractedPointLight2d, &GlobalTransform), With<ExtractedPointLight2d>>,
+    lights_query: Query<(&ExtractedPointLight2d, &GlobalTransform)>,
     ambient_light: Res<AmbientLight2d>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
@@ -183,11 +190,14 @@ pub fn prepare_lights(
             main_view.projection * main_view.transform.compute_matrix().inverse()
         });
 
-        for visible_light in visible_entities.entities.iter().copied() {
-            let Ok((light, light_transform)) = lights_query.get(visible_light) else {
-                continue;
-            };
+        let mut visible_lights = visible_entities
+            .entities
+            .iter()
+            .filter_map(|e| lights_query.get(*e).ok())
+            .collect::<Vec<_>>();
+        radsort::sort_by_key(&mut visible_lights, |(light, _)| light.id);
 
+        for (light, light_transform) in &visible_lights {
             let position_ws = light_transform.translation().extend(1.);
             let screen_size = 2.
                 / Vec2::new(

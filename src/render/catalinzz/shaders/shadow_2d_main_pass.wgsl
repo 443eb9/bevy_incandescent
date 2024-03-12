@@ -103,15 +103,6 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
             let attend_color = visibility * visibility * (*light).intensity * light_color.rgb;
             color += attend_color;
         }
-
-        // if length(rel_px_ss) < light_range_ss {
-        //     var visibility = pcf(rel_ss, shadow_map_meta.pcf_samples, pcf_radius_rel, i_light);
-        //     visibility *= 1. - saturate(
-        //         (rel_px_dist - light_radius_ss) / (light_range_ss - light_radius_ss)
-        //     );
-        //     let attend_color = visibility * visibility * (*light).intensity * light_color.rgb;
-        //     color += attend_color;
-        // }
     }
 
     return textureSample(main_tex, main_tex_sampler, in.uv)

@@ -489,7 +489,7 @@ pub fn prepare_lights(
     mut commands: Commands,
     mut texture_cache: ResMut<TextureCache>,
     main_views: Query<Entity, With<ViewTarget>>,
-    mut point_lights: Query<Entity, With<ExtractedPointLight2d>>,
+    point_lights: Query<(Entity, &ExtractedPointLight2d)>,
     shadow_map_config: Res<ShadowMap2dConfig>,
     mut shadow_map_storage: ResMut<ShadowMap2dStorage>,
     mut gpu_meta_buffers: ResMut<GpuMetaBuffers>,
@@ -506,8 +506,11 @@ pub fn prepare_lights(
 
     gpu_meta_buffers.clear();
 
-    for (light_index, light_entity) in point_lights.iter_mut().enumerate() {
-        // TODO support different pcf settings for different lights
+    let mut point_lights = point_lights.iter().collect::<Vec<_>>();
+    radsort::sort_by_key(&mut point_lights, |(_, light)| light.id);
+
+    for (light_index, (light_entity, _)) in point_lights.into_iter().enumerate() {
+        // TODO support different settings for different lights
         let meta_index = gpu_meta_buffers.push_light_meta(GpuShadowMapMeta {
             index: light_index as u32,
             size: shadow_map_config.size,

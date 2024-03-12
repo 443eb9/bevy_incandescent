@@ -21,6 +21,7 @@ bevy = { version = "0.13", default-features = false, features = [
     "bevy_sprite",
 ] }
 fast_poisson = "1.0.0"
+radsort = "0.1.0"
 thread_local = "1.1"
 
 [dev-dependencies]
