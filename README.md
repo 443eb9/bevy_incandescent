@@ -24,7 +24,9 @@ A 2d lighting crate for bevy. Currently wip.
 | Flag            | Functionality                                                                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `debug`         | Show some debug info like light ranges.                                                                                                            |
+| `catalinzz`     | Render shadow using the approach from Catalin ZZ.                                                                                                  |
 | `compatibility` | Prefer compatibility to performance as this crate uses things that are not supported by every platform including textures with `Rg32Float` format. |
+| `pbr`           | WIP.                                                                                                                                               |
 
 ## Render Graph
 
@@ -39,4 +41,4 @@ A 2d lighting crate for bevy. Currently wip.
 
 | Bevy ver | Incandescent ver |
 | -------- | ---------------- |
-| 0.13.x   | 0.1.0            |
+| 0.13.x   | 0.1.0-0.2.0      |
