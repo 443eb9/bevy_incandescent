@@ -34,6 +34,8 @@ use self::light::{GpuLights2d, GpuPointLight2d};
 #[cfg(feature = "catalinzz")]
 pub mod catalinzz;
 pub mod light;
+#[cfg(feature = "pbr")]
+pub mod pbr;
 pub mod visibility;
 
 pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(94897465132296841564891368745312587);
@@ -55,13 +57,19 @@ impl Plugin for IncandescentRenderPlugin {
             Shader::from_wgsl
         );
 
-        app.add_plugins(ExtractResourcePlugin::<AmbientLight2d>::default())
-            .init_resource::<AmbientLight2d>()
-            .register_type::<AmbientLight2d>()
-            .add_systems(
-                PostUpdate,
-                visibility::calc_light_bounds.in_set(VisibilitySystems::CalculateBounds),
-            );
+        app.add_plugins((
+            ExtractResourcePlugin::<AmbientLight2d>::default(),
+            #[cfg(feature = "catalinzz")]
+            catalinzz::CatalinzzApproachPlugin,
+            #[cfg(feature = "pbr")]
+            pbr::IncandescentPbrPlugin,
+        ))
+        .init_resource::<AmbientLight2d>()
+        .register_type::<AmbientLight2d>()
+        .add_systems(
+            PostUpdate,
+            visibility::calc_light_bounds.in_set(VisibilitySystems::CalculateBounds),
+        );
 
         let render_app = app.sub_app_mut(RenderApp);
 

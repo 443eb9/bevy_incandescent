@@ -44,7 +44,7 @@ default = ["catalinzz"]
 debug = ["bevy/bevy_gizmos"]
 compatibility = []
 catalinzz = []
-pbr = []
+sdf = []
 
 # [patch.crates-io]
 # bevy = { path = "../bevy" }

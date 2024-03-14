@@ -20,8 +20,6 @@ impl Plugin for IncandescentPlugin {
             IncandescentEcsPlugin,
             #[cfg(feature = "debug")]
             debug::IncandescentDebugPlugin,
-            #[cfg(feature = "catalinzz")]
-            render::catalinzz::CatalinzzApproachPlugin,
         ));
     }
 }

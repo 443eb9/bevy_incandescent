@@ -6,9 +6,9 @@ A 2d lighting crate for bevy. Currently wip.
 
 ## Future Goals
 
+- SDF+RayMarching Approach Implementation
 - PBR Lighting (Normal Mapping, Specular Mapping, and virtual height for lights)
 - MSM Approach (PCSS -> VSSM -> MSM step by step)
-- SDF+RayMarching Approach Implementation
 - Edge Lighting
 - Compatibility with camera rotation
 - Rim Lights
@@ -26,7 +26,7 @@ A 2d lighting crate for bevy. Currently wip.
 | `debug`         | Show some debug info like light ranges.                                                                                                            |
 | `catalinzz`     | Render shadow using the approach from Catalin ZZ.                                                                                                  |
 | `compatibility` | Prefer compatibility to performance as this crate uses things that are not supported by every platform including textures with `Rg32Float` format. |
-| `pbr`           | WIP.                                                                                                                                               |
+| `sdf`           | Render shadow using SDF+Raymarching.                                                                                                               |
 
 ## Render Graph
 
