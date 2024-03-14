@@ -15,8 +15,6 @@ use crate::math::CircularSector;
 
 #[cfg(feature = "catalinzz")]
 pub mod catalinzz;
-#[cfg(feature = "pbr")]
-pub mod pbr;
 
 pub struct IncandescentEcsPlugin;
 

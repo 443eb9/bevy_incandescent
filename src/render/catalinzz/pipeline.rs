@@ -237,7 +237,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
             mag_filter: FilterMode::Linear,
             min_filter: FilterMode::Linear,
             mipmap_filter: FilterMode::Linear,
-            lod_min_clamp: 0.0,
+            lod_min_clamp: 0.,
             lod_max_clamp: f32::MAX,
             compare: None,
             anisotropy_clamp: 1,

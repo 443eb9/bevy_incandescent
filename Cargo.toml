@@ -64,6 +64,6 @@ path = "examples/stress_test.rs"
 required-features = ["catalinzz"]
 
 [[example]]
-name = "pbr"
-path = "examples/pbr.rs"
-required-features = ["pbr"]
+name = "jump_flooding_algo"
+path = "examples/jump_flooding_algo.rs"
+required-features = ["sdf"]

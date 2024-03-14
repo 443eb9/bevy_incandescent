@@ -18,7 +18,7 @@ use bevy::{
         render_phase::RenderPhase,
         render_resource::{Shader, ShaderType},
         renderer::{RenderDevice, RenderQueue},
-        view::{ExtractedView, Msaa, ViewTarget, VisibilitySystems, VisibleEntities},
+        view::{ExtractedView, ViewTarget, VisibilitySystems, VisibleEntities},
         Extract, ExtractSchedule, Render, RenderApp, RenderSet,
     },
     transform::components::GlobalTransform,
@@ -34,8 +34,8 @@ use self::light::{GpuLights2d, GpuPointLight2d};
 #[cfg(feature = "catalinzz")]
 pub mod catalinzz;
 pub mod light;
-#[cfg(feature = "pbr")]
-pub mod pbr;
+#[cfg(feature = "sdf")]
+pub mod sdf;
 pub mod visibility;
 
 pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(94897465132296841564891368745312587);
@@ -61,8 +61,6 @@ impl Plugin for IncandescentRenderPlugin {
             ExtractResourcePlugin::<AmbientLight2d>::default(),
             #[cfg(feature = "catalinzz")]
             catalinzz::CatalinzzApproachPlugin,
-            #[cfg(feature = "pbr")]
-            pbr::IncandescentPbrPlugin,
         ))
         .init_resource::<AmbientLight2d>()
         .register_type::<AmbientLight2d>()
@@ -177,10 +175,7 @@ pub fn prepare_lights(
     ambient_light: Res<AmbientLight2d>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    msaa: Res<Msaa>,
 ) {
-    assert_eq!(*msaa, Msaa::Off, "MSAA is not supported yet!");
-
     commands.insert_resource(GpuAmbientLight2dBuffer::new(
         GpuAmbientLight2d {
             color: ambient_light.color.rgba_linear_to_vec4(),
