@@ -32,7 +32,7 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
     let size = shadow_map_meta.size;
     let light_index = invocation_id.z;
 
-    if px.x >= size >> (reduction_time - 1) || px.y >= size {
+    if px.x >= size >> reduction_time || px.y >= size {
         return;
     }
 

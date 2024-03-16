@@ -40,11 +40,11 @@ bevy-inspector-egui = "0.23.2"
 rand = "0.8"
 
 [features]
-default = ["catalinzz"]
+default = []
 debug = ["bevy/bevy_gizmos"]
 compatibility = []
 catalinzz = []
-sdf = []
+ray_marching = []
 
 # [patch.crates-io]
 # bevy = { path = "../bevy" }
@@ -52,7 +52,6 @@ sdf = []
 [[example]]
 name = "basic"
 path = "examples/basic.rs"
-required-features = ["catalinzz"]
 
 [[example]]
 name = "print_graph"
@@ -64,6 +63,6 @@ path = "examples/stress_test.rs"
 required-features = ["catalinzz"]
 
 [[example]]
-name = "jump_flooding_algo"
-path = "examples/jump_flooding_algo.rs"
-required-features = ["sdf"]
+name = "ray_marching"
+path = "examples/ray_marching.rs"
+required-features = ["ray_marching"]

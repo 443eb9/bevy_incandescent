@@ -8,7 +8,7 @@ pub mod ecs;
 pub mod math;
 pub mod render;
 
-#[cfg(not(any(feature = "catalinzz", feature = "sdf")))]
+#[cfg(not(any(feature = "catalinzz", feature = "ray_marching")))]
 compile_error!("Incandescent requires at least one render approach feature to be enabled!");
 
 pub struct IncandescentPlugin;

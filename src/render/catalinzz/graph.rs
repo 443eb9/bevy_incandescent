@@ -18,7 +18,7 @@ use bevy::{
 };
 
 use crate::{
-    ecs::catalinzz::{MainShadowCameraDriver, ShadowView2d},
+    ecs::{catalinzz::MainShadowCameraDriver, ShadowView2d},
     render::{
         light::{GpuAmbientLight2dBuffer, GpuLights2d},
         DynamicUniformIndex,
@@ -29,7 +29,8 @@ use super::{
     pipeline::{
         Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
         Shadow2dReductionPipeline,
-    }, GpuMetaBuffers, GpuShadowMapMeta, PoissonDiskBuffer, ShadowMap2dStorage
+    },
+    GpuMetaBuffers, GpuShadowMapMeta, PoissonDiskBuffer, ShadowMap2dStorage,
 };
 
 #[derive(RenderLabel, Debug, Hash, PartialEq, Eq, Clone)]
@@ -344,12 +345,12 @@ impl Node for Shadow2dReductionNode {
     }
 }
 
-pub struct Shadow2dMainPass {
+pub struct Shadow2dMainPassNode {
     main_view_query: QueryState<(Read<ViewTarget>, Read<ViewUniformOffset>, Read<GpuLights2d>)>,
     light_view_query: QueryState<(), With<ShadowView2d>>,
 }
 
-impl FromWorld for Shadow2dMainPass {
+impl FromWorld for Shadow2dMainPassNode {
     fn from_world(world: &mut World) -> Self {
         Self {
             main_view_query: world.query_filtered(),
@@ -358,7 +359,7 @@ impl FromWorld for Shadow2dMainPass {
     }
 }
 
-impl Node for Shadow2dMainPass {
+impl Node for Shadow2dMainPassNode {
     #[inline]
     fn update(&mut self, world: &mut World) {
         self.main_view_query.update_archetypes(world);

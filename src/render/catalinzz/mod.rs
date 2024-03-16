@@ -32,11 +32,11 @@ use fast_poisson::Poisson2D;
 
 use crate::{
     ecs::{
-        catalinzz::{MainShadowCameraDriver, ShadowMap2dConfig, ShadowView2d},
-        PointLight2d, SpotLight2d,
+        catalinzz::{MainShadowCameraDriver, ShadowMap2dConfig},
+        PointLight2d, ShadowView2d, SpotLight2d,
     },
     render::catalinzz::graph::{
-        Shadow2dDistortPassNode, Shadow2dMainPass, Shadow2dMeshPassNode, Shadow2dNode,
+        Shadow2dDistortPassNode, Shadow2dMainPassNode, Shadow2dMeshPassNode, Shadow2dNode,
         Shadow2dPrepassNode, Shadow2dReductionNode,
     },
 };
@@ -59,7 +59,7 @@ pub const SHADOW_DISTORT_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13
 pub const SHADOW_PREPASS_SHADER: Handle<Shader> = Handle::weak_from_u128(5321368413218521485631341);
 pub const SHADOW_REDUCTION_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(485648964891315351);
 pub const SHADOW_MAIN_PASS_SHADER: Handle<Shader> = Handle::weak_from_u128(13643651896413518964153);
-pub const SHADOW_PREPASS_WORKGROUP_SIZE: UVec3 = UVec3 { x: 16, y: 16, z: 1 };
+pub const SHADOW_WORKGROUP_SIZE: UVec3 = UVec3 { x: 16, y: 16, z: 1 };
 
 #[cfg(feature = "compatibility")]
 pub const SHADOW_MAP_FORMAT: TextureFormat = TextureFormat::Rgba32Float;
@@ -153,7 +153,7 @@ impl Plugin for CatalinzzApproachPlugin {
                 Core2d,
                 Shadow2dNode::Shadow2dReductionPass,
             )
-            .add_render_graph_node::<Shadow2dMainPass>(Core2d, Shadow2dNode::Shadow2dMainPass)
+            .add_render_graph_node::<Shadow2dMainPassNode>(Core2d, Shadow2dNode::Shadow2dMainPass)
             .add_render_graph_edges(
                 Core2d,
                 (
@@ -261,7 +261,7 @@ impl GpuMetaBuffers {
         self.reduction_offsets.clear();
 
         for i in 0..num_reductions {
-            let idx = self.reduction.push(&(i + 1));
+            let idx = self.reduction.push(&i);
             self.reduction_offsets.push(idx);
         }
     }
@@ -327,8 +327,8 @@ impl ShadowMap2dStorage {
         self.secondary_shadow_map = Some(self.create_shadow_map(render_device, SHADOW_MAP_FORMAT));
         self.alpha_map = Some(self.create_shadow_map(render_device, ALPHA_MAP_FORMAT));
         self.work_group_count_per_light = UVec3 {
-            x: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.x),
-            y: meta.size.div_ceil(SHADOW_PREPASS_WORKGROUP_SIZE.y),
+            x: meta.size.div_ceil(SHADOW_WORKGROUP_SIZE.x),
+            y: meta.size.div_ceil(SHADOW_WORKGROUP_SIZE.y),
             z: 1,
         };
         self.work_group_count_total = UVec3 {

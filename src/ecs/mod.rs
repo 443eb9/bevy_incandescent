@@ -6,6 +6,7 @@ use bevy::{
         color::Color,
         extract_resource::ExtractResource,
         primitives::Frustum,
+        texture::ColorAttachment,
         view::{InheritedVisibility, ViewVisibility, Visibility, VisibleEntities},
     },
     transform::components::{GlobalTransform, Transform},
@@ -15,6 +16,8 @@ use crate::math::CircularSector;
 
 #[cfg(feature = "catalinzz")]
 pub mod catalinzz;
+#[cfg(feature = "ray_marching")]
+pub mod ray_marching;
 
 pub struct IncandescentEcsPlugin;
 
@@ -24,6 +27,11 @@ impl Plugin for IncandescentEcsPlugin {
             .register_type::<SpotLight2d>()
             .register_type::<AmbientLight2d>();
     }
+}
+
+#[derive(Component)]
+pub struct ShadowView2d {
+    pub attachment: ColorAttachment,
 }
 
 #[derive(Component, Default, Clone, Copy, Reflect)]

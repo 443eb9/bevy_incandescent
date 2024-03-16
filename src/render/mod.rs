@@ -34,8 +34,8 @@ use self::light::{GpuLights2d, GpuPointLight2d};
 #[cfg(feature = "catalinzz")]
 pub mod catalinzz;
 pub mod light;
-#[cfg(feature = "sdf")]
-pub mod sdf;
+#[cfg(feature = "ray_marching")]
+pub mod ray_marching;
 pub mod visibility;
 
 pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(94897465132296841564891368745312587);
@@ -61,6 +61,8 @@ impl Plugin for IncandescentRenderPlugin {
             ExtractResourcePlugin::<AmbientLight2d>::default(),
             #[cfg(feature = "catalinzz")]
             catalinzz::CatalinzzApproachPlugin,
+            #[cfg(feature = "ray_marching")]
+            ray_marching::RayMarchingApproachPlugin,
         ))
         .init_resource::<AmbientLight2d>()
         .register_type::<AmbientLight2d>()

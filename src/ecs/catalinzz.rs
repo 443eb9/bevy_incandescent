@@ -2,13 +2,8 @@ use bevy::{
     ecs::{component::Component, reflect::ReflectResource, system::Resource},
     math::{Mat4, Vec2},
     reflect::Reflect,
-    render::{extract_resource::ExtractResource, texture::ColorAttachment},
+    render::extract_resource::ExtractResource,
 };
-
-#[derive(Component)]
-pub struct ShadowView2d {
-    pub attachment: ColorAttachment,
-}
 
 #[derive(Component)]
 pub struct MainShadowCameraDriver;
