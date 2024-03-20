@@ -14,7 +14,7 @@ use bevy::{
         render_resource::{
             AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
             SamplerDescriptor, Shader, ShaderType, TextureAspect, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+            TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
             TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
@@ -115,7 +115,7 @@ impl Plugin for RayMarchingApproachPlugin {
                     Shadow2dNode::Shadow2dMeshPass,
                     Shadow2dNode::Shadow2dJfaPrepass,
                     Shadow2dNode::Shadow2dJfaPass,
-                    // Shadow2dNode::Shadow2dSdfPass,
+                    Shadow2dNode::Shadow2dSdfPass,
                     Shadow2dNode::Shadow2dMainPass,
                     Node2d::Bloom,
                 ),
@@ -151,7 +151,7 @@ pub fn prepare(
         sdf_texture_storage.try_add_main_view(main_view_entity, sdf_tex_size, &render_device);
         gpu_meta_buffers.init_jfa_iteration_buffer(
             main_view_entity,
-            sdf_tex_size.x.ilog2().max(sdf_tex_size.y.ilog2()) as u32,
+            sdf_tex_size.x.max(sdf_tex_size.y).ilog2() as u32 + 1,
         );
 
         let offset = gpu_meta_buffers.add_sdf_meta(SdfMeta {
@@ -204,7 +204,7 @@ impl SdfTexture {
             primary,
             secondary,
             size,
-            jfa_iterations: size.x.max(size.y).ilog2()
+            jfa_iterations: size.x.max(size.y).ilog2() + 1,
         }
     }
 
@@ -322,7 +322,7 @@ pub struct SdfMeta {
 #[derive(Resource, Default)]
 pub struct GpuMetaBuffers {
     sdf_meta: DynamicUniformBuffer<SdfMeta>,
-    jfa: EntityHashMap<(DynamicUniformBuffer<u32>, Vec<u32>)>,
+    jfa_iterations: EntityHashMap<(DynamicUniformBuffer<u32>, Vec<u32>)>,
 }
 
 impl GpuMetaBuffers {
@@ -333,7 +333,8 @@ impl GpuMetaBuffers {
 
     #[inline]
     pub fn init_jfa_iteration_buffer(&mut self, main_view_entity: Entity, jfa_iterations: u32) {
-        let (jfa_iteration, jfa_iteration_offsets) = self.jfa.entry(main_view_entity).or_default();
+        let (jfa_iteration, jfa_iteration_offsets) =
+            self.jfa_iterations.entry(main_view_entity).or_default();
 
         jfa_iteration.clear();
         jfa_iteration_offsets.clear();
@@ -351,18 +352,18 @@ impl GpuMetaBuffers {
 
     #[inline]
     pub fn jfa_iteration_binding(&self, main_view_entity: Entity) -> BindingResource {
-        self.jfa[&main_view_entity].0.binding().unwrap()
+        self.jfa_iterations[&main_view_entity].0.binding().unwrap()
     }
 
     #[inline]
     pub fn get_jfa_iteration_index(&self, main_view_entity: Entity, iteration: u32) -> u32 {
-        self.jfa[&main_view_entity].1[iteration as usize]
+        self.jfa_iterations[&main_view_entity].1[iteration as usize]
     }
 
     #[inline]
     pub fn clear(&mut self) {
         self.sdf_meta.clear();
-        self.jfa.iter_mut().for_each(|(_, (it, idx))| {
+        self.jfa_iterations.iter_mut().for_each(|(_, (it, idx))| {
             it.clear();
             idx.clear();
         });
@@ -371,7 +372,7 @@ impl GpuMetaBuffers {
     #[inline]
     pub fn write_buffers(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
         self.sdf_meta.write_buffer(render_device, render_queue);
-        self.jfa.iter_mut().for_each(|(_, (it, _))| {
+        self.jfa_iterations.iter_mut().for_each(|(_, (it, _))| {
             it.write_buffer(render_device, render_queue);
         });
     }

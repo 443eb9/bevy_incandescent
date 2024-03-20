@@ -20,32 +20,26 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
         return;
     }
 
+    var best_dist = 9999999.;
+    var best_px = vec2f(0.);
+
     let step = i32(max(max(sdf_meta.size.x, sdf_meta.size.y) >> (jfa_iter + 1u), 1u));
-    let tex_fsize = vec2f(sdf_meta.size);
     let tex_isize = vec2i(sdf_meta.size);
 
-    var best_dist_px = 10.;
-    var best_seed_px = vec2i(0);
-
-    for (var dx = -step; dx <= step; dx += step) {
-        for (var dy = -step; dy <= step; dy += step) {
-            let neighbor_px = vec2i(px) + vec2i(dx, dy);
-            if neighbor_px.x < 0 || neighbor_px.x >= tex_isize.x
-               || neighbor_px.y < 0 || neighbor_px.y >= tex_isize.y {
-                continue;
-            }
-
-            let neighbor_best_seed_uv = textureLoad(source_sdf_tex, neighbor_px).rg;
-            if neighbor_best_seed_uv.x > 0. && neighbor_best_seed_uv.y > 0. {
-                let neighbor_best_seed_px = vec2i(neighbor_best_seed_uv * tex_fsize);
-                let this_to_neighbor_best_seed_px = distance(vec2f(px), vec2f(neighbor_best_seed_px));
-                if this_to_neighbor_best_seed_px < best_dist_px {
-                    best_dist_px = this_to_neighbor_best_seed_px;
-                    best_seed_px = vec2i(neighbor_best_seed_px);
+    for (var dx = -1; dx <= 1; dx++) {
+        for (var dy = -1; dy <= 1; dy++) {
+            let neighbor_px = vec2i(px) + vec2i(dx, dy) * step;
+            let neighbor_data = textureLoad(source_sdf_tex, neighbor_px);
+            
+            if neighbor_data.x > 0. && neighbor_data.y > 0. {
+                let d = distance(vec2f(px), vec2f(neighbor_data.xy));
+                if d < best_dist {
+                    best_dist = d;
+                    best_px = neighbor_data.xy;
                 }
             }
         }
     }
 
-    textureStore(dest_sdf_tex, px, vec4f(vec2f(best_seed_px) / tex_fsize, 0.0, 0.0));
+    textureStore(dest_sdf_tex, px, vec4f(best_px, 0., 0.));
 }

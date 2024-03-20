@@ -13,15 +13,12 @@ use bevy::{
             BindGroupEntries, ComputePassDescriptor, Operations, PipelineCache,
             RenderPassColorAttachment, RenderPassDescriptor,
         },
-        renderer::{RenderContext, RenderDevice},
+        renderer::RenderContext,
         view::ViewTarget,
     },
 };
 
-use crate::{
-    ecs::{ray_marching::RayMarchingConfig, ShadowView2d},
-    render::DynamicUniformIndex,
-};
+use crate::{ecs::ShadowView2d, render::DynamicUniformIndex};
 
 use super::{
     pipeline::{
@@ -203,7 +200,6 @@ impl Node for Shadow2dJfaPassNode {
         let main_view_entity = graph.view_entity();
         let sdf_textures = world.resource::<SdfTextureStorage>();
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
-        let ray_marching_config = world.resource::<RayMarchingConfig>();
 
         let sdf_texture = sdf_textures.get_sdf_texture(main_view_entity);
         let bind_group_primary_source = render_context.render_device().create_bind_group(

@@ -13,9 +13,8 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
         return;
     }
 
-    let seed = textureLoad(sdf_tex, px).rg;
-    if seed.x > 0. || seed.y > 0. {
-        let uv = vec2f(px) / vec2f(sdf_meta.size);
-        textureStore(sdf_tex, px, vec4f(distance(uv, seed)));
-    }
+    let px_data = textureLoad(sdf_tex, px);
+    let uv = vec2f(px) / vec2f(sdf_meta.size);
+    let d = distance(uv, px_data.xy / vec2f(sdf_meta.size));
+    textureStore(sdf_tex, px, vec4f(d, d, d, 1.));
 }

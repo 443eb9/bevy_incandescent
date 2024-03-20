@@ -17,13 +17,9 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
         return;
     }
 
-    let uv = vec2f(px) / vec2f(sdf_meta.size);
     if textureLoad(main_tex, px, 0).a > sdf_meta.alpha_threshold {
-        // Is inside
-        textureStore(sdf_tex, px, vec4<f32>(uv, 0., 0.));
+        textureStore(sdf_tex, px, vec4<f32>(vec2f(px), 0., 0.));
     } else {
-        // Is outside
-        // textureStore(sdf_tex, px, vec4<f32>(-1., -1., uv));
-        textureStore(sdf_tex, px, vec4f(0.));
+        textureStore(sdf_tex, px, vec4<f32>(0., 0., 0., 0.));
     }
 }
