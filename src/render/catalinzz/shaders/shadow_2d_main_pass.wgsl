@@ -61,13 +61,16 @@ fn get_caster_distance(rel_ss: vec2f, i_light: u32) -> f32 {
 }
 
 fn pcf(rel_ss: vec2f, sample_count: u32, sample_radius: f32, i_light: u32) -> f32 {
+    if get_alpha(rel_ss, i_light) > shadow_map_meta.alpha_threshold {
+        return 0.;
+    }
+
     var visibility = 0.;
     for (var i: u32 = 0; i < sample_count; i++) {
         let sample_ss = rel_ss + poisson_disk[i] * sample_radius;
         let dist = get_caster_distance(sample_ss, i_light);
         
-        if dist > length(sample_ss) - shadow_map_meta.bias
-           && get_alpha(sample_ss, i_light) < shadow_map_meta.alpha_threshold {
+        if dist > length(sample_ss) - shadow_map_meta.bias {
             visibility += 1.;
         }
     }

@@ -29,13 +29,17 @@ use crate::{
     render::light::{GpuAmbientLight2d, GpuAmbientLight2dBuffer},
 };
 
-use self::light::{GpuLights2d, GpuPointLight2d};
+use self::{
+    light::{GpuLights2d, GpuPointLight2d},
+    universal_buffers::{BooleanBuffer, NumberBuffer},
+};
 
 #[cfg(feature = "catalinzz")]
 pub mod catalinzz;
 pub mod light;
 #[cfg(feature = "ray_marching")]
 pub mod ray_marching;
+pub mod universal_buffers;
 pub mod visibility;
 
 pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(94897465132296841564891368745312587);
@@ -77,6 +81,14 @@ impl Plugin for IncandescentRenderPlugin {
             .init_resource::<GpuAmbientLight2dBuffer>()
             .add_systems(ExtractSchedule, extract_lights)
             .add_systems(Render, prepare_lights.in_set(RenderSet::Prepare));
+    }
+
+    fn finish(&self, app: &mut App) {
+        let render_app = app.sub_app_mut(RenderApp);
+
+        render_app
+            .init_resource::<NumberBuffer>()
+            .init_resource::<BooleanBuffer>();
     }
 }
 

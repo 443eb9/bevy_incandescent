@@ -149,10 +149,6 @@ pub fn prepare(
         let sdf_tex_size =
             (extracted_view.viewport.zw().as_vec2() * ray_marching_config.scale).as_uvec2();
         sdf_texture_storage.try_add_main_view(main_view_entity, sdf_tex_size, &render_device);
-        gpu_meta_buffers.init_jfa_iteration_buffer(
-            main_view_entity,
-            sdf_tex_size.x.max(sdf_tex_size.y).ilog2() as u32 + 1,
-        );
 
         let offset = gpu_meta_buffers.add_sdf_meta(SdfMeta {
             size: sdf_tex_size,
@@ -322,7 +318,6 @@ pub struct SdfMeta {
 #[derive(Resource, Default)]
 pub struct GpuMetaBuffers {
     sdf_meta: DynamicUniformBuffer<SdfMeta>,
-    jfa_iterations: EntityHashMap<(DynamicUniformBuffer<u32>, Vec<u32>)>,
 }
 
 impl GpuMetaBuffers {
@@ -332,48 +327,17 @@ impl GpuMetaBuffers {
     }
 
     #[inline]
-    pub fn init_jfa_iteration_buffer(&mut self, main_view_entity: Entity, jfa_iterations: u32) {
-        let (jfa_iteration, jfa_iteration_offsets) =
-            self.jfa_iterations.entry(main_view_entity).or_default();
-
-        jfa_iteration.clear();
-        jfa_iteration_offsets.clear();
-
-        for i in 0..jfa_iterations {
-            let idx = jfa_iteration.push(&i);
-            jfa_iteration_offsets.push(idx);
-        }
-    }
-
-    #[inline]
     pub fn sdf_meta_binding(&self) -> BindingResource {
         self.sdf_meta.binding().unwrap()
     }
 
     #[inline]
-    pub fn jfa_iteration_binding(&self, main_view_entity: Entity) -> BindingResource {
-        self.jfa_iterations[&main_view_entity].0.binding().unwrap()
-    }
-
-    #[inline]
-    pub fn get_jfa_iteration_index(&self, main_view_entity: Entity, iteration: u32) -> u32 {
-        self.jfa_iterations[&main_view_entity].1[iteration as usize]
-    }
-
-    #[inline]
     pub fn clear(&mut self) {
         self.sdf_meta.clear();
-        self.jfa_iterations.iter_mut().for_each(|(_, (it, idx))| {
-            it.clear();
-            idx.clear();
-        });
     }
 
     #[inline]
     pub fn write_buffers(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
         self.sdf_meta.write_buffer(render_device, render_queue);
-        self.jfa_iterations.iter_mut().for_each(|(_, (it, _))| {
-            it.write_buffer(render_device, render_queue);
-        });
     }
 }

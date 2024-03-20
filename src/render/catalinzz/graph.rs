@@ -21,6 +21,7 @@ use crate::{
     ecs::{catalinzz::MainShadowCameraDriver, ShadowView2d},
     render::{
         light::{GpuAmbientLight2dBuffer, GpuLights2d},
+        universal_buffers::NumberBuffer,
         DynamicUniformIndex,
     },
 };
@@ -295,10 +296,7 @@ impl Node for Shadow2dReductionNode {
         let shadow_map_storage = world.resource::<ShadowMap2dStorage>();
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
         let work_group_count = shadow_map_storage.work_group_count_total();
-
-        let Some(reduction_time_binding) = gpu_meta_buffers.reduction_time_buffer_binding() else {
-            return Ok(());
-        };
+        let number_buffer = world.resource::<NumberBuffer>();
 
         let bind_group_primary_source = render_context.render_device().create_bind_group(
             "shadow_2d_reduction_pass_bind_group",
@@ -307,7 +305,7 @@ impl Node for Shadow2dReductionNode {
                 shadow_map_storage.texture_view_primary(),
                 shadow_map_storage.texture_view_secondary(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),
-                reduction_time_binding.clone(),
+                number_buffer.binding(),
             )),
         );
         let bind_group_secondary_source = render_context.render_device().create_bind_group(
@@ -317,7 +315,7 @@ impl Node for Shadow2dReductionNode {
                 shadow_map_storage.texture_view_secondary(),
                 shadow_map_storage.texture_view_primary(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),
-                reduction_time_binding,
+                number_buffer.binding(),
             )),
         );
         let bind_groups = [&bind_group_secondary_source, &bind_group_primary_source];
@@ -330,7 +328,7 @@ impl Node for Shadow2dReductionNode {
                         label: Some("shadow_2d_reduction_pass"),
                         timestamp_writes: None,
                     });
-            let offset = gpu_meta_buffers.get_reduction_index(t as u32);
+            let offset = number_buffer.get_index(t as u32);
 
             compute_pass.set_pipeline(compute_pipeline);
             compute_pass.set_bind_group(0, bind_groups[t % 2], &[offset]);

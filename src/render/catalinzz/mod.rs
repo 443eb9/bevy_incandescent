@@ -242,8 +242,6 @@ pub struct GpuShadowMapMeta {
 #[derive(Resource, Default)]
 pub struct GpuMetaBuffers {
     shadow_map: DynamicUniformBuffer<GpuShadowMapMeta>,
-    reduction: DynamicUniformBuffer<u32>,
-    reduction_offsets: Vec<u32>,
 }
 
 impl GpuMetaBuffers {
@@ -256,22 +254,6 @@ impl GpuMetaBuffers {
     }
 
     #[inline]
-    pub fn init_reduction_time_buffer(&mut self, num_reductions: u32) {
-        self.reduction.clear();
-        self.reduction_offsets.clear();
-
-        for i in 0..num_reductions {
-            let idx = self.reduction.push(&i);
-            self.reduction_offsets.push(idx);
-        }
-    }
-
-    #[inline]
-    pub fn get_reduction_index(&self, reduction: u32) -> u32 {
-        self.reduction_offsets[reduction as usize]
-    }
-
-    #[inline]
     pub fn clear(&mut self) {
         self.shadow_map.clear();
     }
@@ -279,18 +261,11 @@ impl GpuMetaBuffers {
     #[inline]
     pub fn write_buffers(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
         self.shadow_map.write_buffer(render_device, render_queue);
-        self.reduction.write_buffer(render_device, render_queue);
     }
 
     #[inline]
     pub fn shadow_map_meta_buffer_binding(&self) -> BindingResource {
         self.shadow_map.binding().unwrap()
-    }
-
-    // This buffer keeps panic if unwrap directly, not sure why
-    #[inline]
-    pub fn reduction_time_buffer_binding(&self) -> Option<BindingResource> {
-        self.reduction.binding()
     }
 }
 
@@ -312,12 +287,7 @@ pub struct ShadowMap2dStorage {
 }
 
 impl ShadowMap2dStorage {
-    pub fn try_update(
-        &mut self,
-        meta: ShadowMap2dMeta,
-        render_device: &RenderDevice,
-        meta_buffers: &mut GpuMetaBuffers,
-    ) {
+    pub fn try_update(&mut self, meta: ShadowMap2dMeta, render_device: &RenderDevice) {
         if self.meta == meta {
             return;
         }
@@ -343,8 +313,6 @@ impl ShadowMap2dStorage {
             self.meta.size,
             "Shadow map size must be a power of 2!"
         );
-
-        meta_buffers.init_reduction_time_buffer(self.num_reductions);
     }
 
     #[inline]
@@ -569,7 +537,6 @@ pub fn prepare_lights(
             size: shadow_map_config.size,
         },
         &render_device,
-        &mut gpu_meta_buffers,
     );
 
     if let Some(shadow_camera) = main_views.iter().next() {

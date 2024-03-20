@@ -48,6 +48,8 @@ impl FromWorld for Shadow2dJfaPrepassPipeline {
                     ),
                     // Sdf meta
                     binding::uniform_buffer::<SdfMeta>(true),
+                    // Is inverted
+                    binding::uniform_buffer::<u32>(true),
                 ),
             ),
         );
