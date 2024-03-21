@@ -6,18 +6,21 @@ use bevy::{
     },
     render::{
         render_resource::{
-            BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
+            AddressMode, BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
             CachedRenderPipelineId, ColorTargetState, ColorWrites, ComputePipelineDescriptor,
-            FragmentState, MultisampleState, PipelineCache, PrimitiveState,
-            RenderPipelineDescriptor, ShaderStages, StorageTextureAccess, TextureFormat,
-            TextureSampleType,
+            FilterMode, FragmentState, MultisampleState, PipelineCache, PrimitiveState,
+            RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages,
+            StorageTextureAccess, TextureFormat, TextureSampleType,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
+        view::ViewUniform,
     },
 };
 
 use bevy::render::render_resource::binding_types as binding;
+
+use crate::render::light::GpuPointLight2d;
 
 use super::{
     SdfMeta, SHADOW_JFA_PASS_SHADER, SHADOW_JFA_PREPASS_SHADER, SHADOW_MAIN_PASS_SHADER,
@@ -173,6 +176,7 @@ impl FromWorld for Shadow2dSdfPassPipeline {
 pub struct Shadow2dMainPassPipeline {
     pub cached_id: CachedRenderPipelineId,
     pub main_pass_layout: BindGroupLayout,
+    pub main_texture_sampler: Sampler,
 }
 
 impl FromWorld for Shadow2dMainPassPipeline {
@@ -184,6 +188,11 @@ impl FromWorld for Shadow2dMainPassPipeline {
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::FRAGMENT,
                 (
+                    // Main texture
+                    binding::texture_2d(TextureSampleType::Float { filterable: true }),
+                    binding::sampler(SamplerBindingType::Filtering),
+                    // Main view
+                    binding::uniform_buffer::<ViewUniform>(true),
                     // Sdf texture
                     binding::texture_storage_2d(
                         TextureFormat::Rgba32Float,
@@ -191,9 +200,16 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     ),
                     // Sdf meta
                     binding::uniform_buffer::<SdfMeta>(true),
+                    // Point lights
+                    binding::storage_buffer_read_only::<GpuPointLight2d>(false),
                 ),
             ),
         );
+
+        let main_texture_sampler = render_device.create_sampler(&SamplerDescriptor {
+            label: Some("shadow_2d_main_pass_sampler".into()),
+            ..Default::default()
+        });
 
         let cached_id =
             world
@@ -221,6 +237,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
         Self {
             cached_id,
             main_pass_layout,
+            main_texture_sampler,
         }
     }
 }

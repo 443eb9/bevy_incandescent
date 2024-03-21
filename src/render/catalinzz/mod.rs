@@ -1,7 +1,10 @@
 use bevy::{
     app::{App, Plugin, PostUpdate},
     asset::{load_internal_asset, Handle},
-    core_pipeline::core_2d::graph::{Core2d, Node2d},
+    core_pipeline::core_2d::{
+        graph::{Core2d, Node2d},
+        Transparent2d,
+    },
     ecs::{
         entity::Entity,
         query::With,
@@ -15,6 +18,7 @@ use bevy::{
         color::Color,
         extract_resource::ExtractResourcePlugin,
         render_graph::RenderGraphApp,
+        render_phase::RenderPhase,
         render_resource::{
             AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
             GpuArrayBuffer, SamplerDescriptor, Shader, ShaderType, TextureAspect,
@@ -23,7 +27,7 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, ColorAttachment, GpuImage, TextureCache},
-        view::{ColorGrading, ExtractedView, Msaa, ViewTarget, VisibilitySystems},
+        view::{ColorGrading, ExtractedView, Msaa, ViewTarget, VisibilitySystems, VisibleEntities},
         Extract, ExtractSchedule, Render, RenderApp, RenderSet,
     },
     transform::{components::GlobalTransform, TransformSystem},
@@ -138,7 +142,7 @@ impl Plugin for CatalinzzApproachPlugin {
 
         render_app
             .init_resource::<GpuMetaBuffers>()
-            .add_systems(ExtractSchedule, extract_light_view)
+            .add_systems(ExtractSchedule, (extract_lights, extract_light_view))
             .add_systems(
                 Render,
                 (prepare_lights, prepare_poisson_disk).in_set(RenderSet::Prepare),
@@ -179,6 +183,42 @@ impl Plugin for CatalinzzApproachPlugin {
             .init_resource::<ShadowMap2dStorage>()
             .init_resource::<PoissonDiskBuffer>();
     }
+}
+
+pub fn extract_lights(
+    mut commands: Commands,
+    point_lights_query: Extract<Query<(Entity, &VisibleEntities)>>,
+    spot_lights_query: Extract<Query<(Entity, &VisibleEntities)>>,
+) {
+    commands.insert_or_spawn_batch(
+        point_lights_query
+            .iter()
+            .map(|(entity, visible_entities)| {
+                (
+                    entity,
+                    (
+                        visible_entities.clone(),
+                        RenderPhase::<Transparent2d>::default(),
+                    ),
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
+
+    commands.insert_or_spawn_batch(
+        spot_lights_query
+            .iter()
+            .map(|(entity, visible_entities)| {
+                (
+                    entity,
+                    (
+                        visible_entities.clone(),
+                        RenderPhase::<Transparent2d>::default(),
+                    ),
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
 }
 
 pub fn extract_light_view(

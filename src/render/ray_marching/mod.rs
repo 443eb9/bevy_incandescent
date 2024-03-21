@@ -4,10 +4,11 @@ use bevy::{
     core_pipeline::core_2d::graph::{Core2d, Node2d},
     ecs::{
         entity::{Entity, EntityHashMap},
+        query::With,
         schedule::IntoSystemConfigs,
         system::{Commands, Query, Res, ResMut, Resource},
     },
-    math::{UVec2, UVec3, Vec4Swizzles},
+    math::{UVec2, UVec3, Vec2, Vec4Swizzles},
     render::{
         extract_resource::ExtractResourcePlugin,
         render_graph::RenderGraphApp,
@@ -19,7 +20,7 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, ColorAttachment, GpuImage, TextureCache},
-        view::ExtractedView,
+        view::{ExtractedView, ViewTarget},
         Render, RenderApp, RenderSet,
     },
     utils::hashbrown::hash_map::Entry,
@@ -135,7 +136,7 @@ impl Plugin for RayMarchingApproachPlugin {
 
 pub fn prepare(
     mut commands: Commands,
-    main_view_query: Query<(Entity, &ExtractedView)>,
+    main_view_query: Query<(Entity, &ExtractedView), With<ViewTarget>>,
     mut sdf_texture_storage: ResMut<SdfTextureStorage>,
     mut texture_cache: ResMut<TextureCache>,
     ray_marching_config: Res<RayMarchingConfig>,
@@ -146,8 +147,12 @@ pub fn prepare(
     gpu_meta_buffers.clear();
 
     for (main_view_entity, extracted_view) in &main_view_query {
-        let sdf_tex_size =
-            (extracted_view.viewport.zw().as_vec2() * ray_marching_config.scale).as_uvec2();
+        let sdf_tex_size = (2.
+            / Vec2::new(
+                extracted_view.projection.x_axis[0],
+                extracted_view.projection.y_axis[1],
+            ))
+        .as_uvec2();
         sdf_texture_storage.try_add_main_view(main_view_entity, sdf_tex_size, &render_device);
 
         let offset = gpu_meta_buffers.add_sdf_meta(SdfMeta {
@@ -185,20 +190,19 @@ pub fn prepare(
 }
 
 pub struct SdfTexture {
-    primary: GpuImage,
-    secondary: GpuImage,
+    outer: GpuImage,
+    inner: GpuImage,
+    temp: GpuImage,
     size: UVec2,
     jfa_iterations: u32,
 }
 
 impl SdfTexture {
     pub fn new(size: UVec2, render_device: &RenderDevice) -> Self {
-        let primary = Self::create_sdf_texture(size, render_device);
-        let secondary = Self::create_sdf_texture(size, render_device);
-
         Self {
-            primary,
-            secondary,
+            outer: Self::create_sdf_texture(size, render_device),
+            inner: Self::create_sdf_texture(size, render_device),
+            temp: Self::create_sdf_texture(size, render_device),
             size,
             jfa_iterations: size.x.max(size.y).ilog2() + 1,
         }
@@ -211,20 +215,20 @@ impl SdfTexture {
 
     pub fn get_texture(&self) -> &GpuImage {
         if self.jfa_iterations % 2 == 0 {
-            self.get_primary_texture()
+            self.get_inner_texture()
         } else {
-            self.get_secondary_texture()
+            self.get_outer_texture()
         }
     }
 
     #[inline]
-    pub fn get_primary_texture(&self) -> &GpuImage {
-        &self.primary
+    pub fn get_inner_texture(&self) -> &GpuImage {
+        &self.outer
     }
 
     #[inline]
-    pub fn get_secondary_texture(&self) -> &GpuImage {
-        &self.secondary
+    pub fn get_outer_texture(&self) -> &GpuImage {
+        &self.inner
     }
 
     fn create_sdf_texture(size: UVec2, render_device: &RenderDevice) -> GpuImage {

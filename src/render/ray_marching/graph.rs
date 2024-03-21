@@ -14,13 +14,17 @@ use bevy::{
             RenderPassColorAttachment, RenderPassDescriptor,
         },
         renderer::RenderContext,
-        view::ViewTarget,
+        view::{ViewTarget, ViewUniformOffset, ViewUniforms},
     },
 };
 
 use crate::{
     ecs::ShadowView2d,
-    render::{universal_buffers::{BooleanBuffer, NumberBuffer}, DynamicUniformIndex},
+    render::{
+        light::GpuLights2d,
+        universal_buffers::{BooleanBuffer, NumberBuffer},
+        DynamicUniformIndex,
+    },
 };
 
 use super::{
@@ -135,7 +139,7 @@ impl Node for Shadow2dJfaPrepassNode {
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
                 main_texture_view,
-                &sdf_texture.get_primary_texture().texture_view,
+                &sdf_texture.get_inner_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
                 boolean_buffer.binding(),
             )),
@@ -216,8 +220,8 @@ impl Node for Shadow2dJfaPassNode {
             "shadow_2d_jfa_pass_bind_group",
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
-                &sdf_texture.get_primary_texture().texture_view,
-                &sdf_texture.get_secondary_texture().texture_view,
+                &sdf_texture.get_inner_texture().texture_view,
+                &sdf_texture.get_outer_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
                 number_buffer.binding(),
             )),
@@ -227,8 +231,8 @@ impl Node for Shadow2dJfaPassNode {
             "shadow_2d_jfa_pass_bind_group",
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
-                &sdf_texture.get_secondary_texture().texture_view,
-                &sdf_texture.get_primary_texture().texture_view,
+                &sdf_texture.get_outer_texture().texture_view,
+                &sdf_texture.get_inner_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
                 number_buffer.binding(),
             )),
@@ -347,7 +351,12 @@ impl Node for Shadow2dSdfPassNode {
 }
 
 pub struct Shadow2dMainPassNode {
-    main_view_query: QueryState<(Read<ViewTarget>, Read<DynamicUniformIndex<SdfMeta>>)>,
+    main_view_query: QueryState<(
+        Read<ViewTarget>,
+        Read<ViewUniformOffset>,
+        Read<DynamicUniformIndex<SdfMeta>>,
+        Read<GpuLights2d>,
+    )>,
 }
 
 impl FromWorld for Shadow2dMainPassNode {
@@ -369,7 +378,7 @@ impl Node for Shadow2dMainPassNode {
         render_context: &mut RenderContext<'w>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
-        let Ok((view_target, meta_offset)) =
+        let Ok((view_target, view_offset, meta_offset, gpu_lights)) =
             self.main_view_query.get_manual(world, graph.view_entity())
         else {
             return Ok(());
@@ -385,6 +394,7 @@ impl Node for Shadow2dMainPassNode {
 
         let sdf_textures = world.resource::<SdfTextureStorage>();
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
+        let view_uniforms = world.resource::<ViewUniforms>();
         let post_process = view_target.post_process_write();
 
         let sdf_texture = sdf_textures.get_sdf_texture(graph.view_entity());
@@ -392,8 +402,12 @@ impl Node for Shadow2dMainPassNode {
             "shadow_2d_main_pass_bind_group",
             &pipeline.main_pass_layout,
             &BindGroupEntries::sequential((
+                post_process.source,
+                &pipeline.main_texture_sampler,
+                view_uniforms.uniforms.binding().unwrap(),
                 &sdf_texture.get_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
+                gpu_lights.point_lights_binding(),
             )),
         );
 
@@ -410,7 +424,7 @@ impl Node for Shadow2dMainPassNode {
         });
 
         render_pass.set_render_pipeline(render_pipeline);
-        render_pass.set_bind_group(0, &bind_group, &[meta_offset.index()]);
+        render_pass.set_bind_group(0, &bind_group, &[view_offset.offset, meta_offset.index()]);
         render_pass.draw(0..3, 0..1);
 
         Ok(())

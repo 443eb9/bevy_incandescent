@@ -14,7 +14,6 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
     }
 
     let px_data = textureLoad(sdf_tex, px);
-    let uv = vec2f(px) / vec2f(sdf_meta.size);
-    let d = distance(uv, px_data.xy / vec2f(sdf_meta.size));
+    let d = distance(vec2f(px), vec2f(px_data.xy));
     textureStore(sdf_tex, px, vec4f(d, d, d, 1.));
 }

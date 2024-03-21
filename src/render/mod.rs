@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use bevy::{
     app::{App, Plugin, PostUpdate},
     asset::{load_internal_asset, Handle},
-    core_pipeline::core_2d::Transparent2d,
     ecs::{
         component::Component,
         entity::Entity,
@@ -11,11 +10,10 @@ use bevy::{
         schedule::IntoSystemConfigs,
         system::{Commands, Query, Res},
     },
-    math::{Vec2, Vec3, Vec4Swizzles},
+    math::{Vec3, Vec4Swizzles},
     render::{
         color::Color,
         extract_resource::ExtractResourcePlugin,
-        render_phase::RenderPhase,
         render_resource::{Shader, ShaderType},
         renderer::{RenderDevice, RenderQueue},
         view::{ExtractedView, ViewTarget, VisibilitySystems, VisibleEntities},
@@ -45,6 +43,7 @@ pub mod visibility;
 pub const HASH_SHADER: Handle<Shader> = Handle::weak_from_u128(94897465132296841564891368745312587);
 pub const MATH_SHADER: Handle<Shader> = Handle::weak_from_u128(45341649741532875412078496512304512);
 pub const LIGHTING_SHADER: Handle<Shader> = Handle::weak_from_u128(1351654315646451321546531153891);
+pub const TYPES_SHADER: Handle<Shader> = Handle::weak_from_u128(5798645318564312354689689451005103);
 
 pub struct IncandescentRenderPlugin;
 
@@ -60,6 +59,8 @@ impl Plugin for IncandescentRenderPlugin {
             "shaders/lighting.wgsl",
             Shader::from_wgsl
         );
+
+        load_internal_asset!(app, TYPES_SHADER, "shaders/types.wgsl", Shader::from_wgsl);
 
         app.add_plugins((
             ExtractResourcePlugin::<AmbientLight2d>::default(),
@@ -124,15 +125,15 @@ pub struct ExtractedPointLight2d {
 
 pub fn extract_lights(
     mut commands: Commands,
-    point_lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform, &VisibleEntities)>>,
-    spot_lights_query: Extract<Query<(Entity, &SpotLight2d, &GlobalTransform, &VisibleEntities)>>,
+    point_lights_query: Extract<Query<(Entity, &PointLight2d, &GlobalTransform)>>,
+    spot_lights_query: Extract<Query<(Entity, &SpotLight2d, &GlobalTransform)>>,
 ) {
     let mut id = 0;
 
     commands.insert_or_spawn_batch(
         point_lights_query
             .iter()
-            .map(|(entity, light, transform, visible_entities)| {
+            .map(|(entity, light, transform)| {
                 let transform = GlobalTransform::from_translation(transform.translation());
                 id += 1;
                 (
@@ -147,8 +148,6 @@ pub fn extract_lights(
                             spot_light_angles: [0., std::f32::consts::TAU],
                         },
                         transform,
-                        visible_entities.clone(),
-                        RenderPhase::<Transparent2d>::default(),
                     ),
                 )
             })
@@ -158,7 +157,7 @@ pub fn extract_lights(
     commands.insert_or_spawn_batch(
         spot_lights_query
             .iter()
-            .map(|(entity, light, transform, visible_entities)| {
+            .map(|(entity, light, transform)| {
                 let transform = GlobalTransform::from_translation(transform.translation());
                 id += 1;
                 (
@@ -173,8 +172,6 @@ pub fn extract_lights(
                             spot_light_angles: light.sector.into_extent(),
                         },
                         transform,
-                        visible_entities.clone(),
-                        RenderPhase::<Transparent2d>::default(),
                     ),
                 )
             })
@@ -216,11 +213,6 @@ pub fn prepare_lights(
 
         for (light, light_transform) in &visible_lights {
             let position_ws = light_transform.translation().extend(1.);
-            let screen_size = 2.
-                / Vec2::new(
-                    main_view.projection.x_axis[0],
-                    main_view.projection.y_axis[1],
-                );
 
             let mut position_ndc = (view_proj * position_ws).xy();
             position_ndc.y = -position_ndc.y;
@@ -232,9 +224,9 @@ pub fn prepare_lights(
 
             buffer.add_point_light(GpuPointLight2d {
                 intensity: light.intensity,
-                position_ss: (position_ndc + 1.) / 2. * screen_size,
-                radius_ss: radius_ndc * screen_size.x,
-                range_ss: range_ndc * screen_size.x,
+                position_ss: (position_ndc + 1.) / 2.,
+                radius_ss: radius_ndc,
+                range_ss: range_ndc,
                 color: light.color.rgba_linear_to_vec4(),
                 angles: light.spot_light_angles,
             });

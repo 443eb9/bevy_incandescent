@@ -1,10 +1,11 @@
 #import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
 #import bevy_render::view::View
 #import bevy_incandescent::{
+    catalinzz::shadow_2d_types::ShadowMapMeta,
     lighting::get_distance_attenuation,
-    catalinzz::shadow_2d_types::{AmbientLight2d, PointLight2d, ShadowMapMeta}
+    math::{is_point_inside_sector},
+    types::{AmbientLight2d, PointLight2d},
 }
-#import bevy_incandescent::math::{is_point_inside_sector}
 
 @group(0) @binding(0)
 var main_tex: texture_2d<f32>;
@@ -94,11 +95,11 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
     let px = in.uv * screen_size;
 
     var color = vec3f(0.);
-    for (var i_light: u32 = 0; i_light < arrayLength(&point_lights); i_light++) {
+    for (var i_light = 0u; i_light < arrayLength(&point_lights); i_light++) {
         let light = &point_lights[i_light];
-        let light_pos_ss = (*light).position_ss;
-        let light_range_ss = max((*light).range_ss, 0.);
-        let light_radius_ss = max((*light).radius_ss, 0.);
+        let light_pos_ss = (*light).position_ss * screen_size;
+        let light_range_ss = max((*light).range_ss, 0.) * screen_size.x;
+        let light_radius_ss = max((*light).radius_ss, 0.) * screen_size.x;
         let light_color = (*light).color;
 
         let rel_px_ss = px - light_pos_ss + shadow_map_meta.offset;
