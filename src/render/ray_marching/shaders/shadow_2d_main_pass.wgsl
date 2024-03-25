@@ -2,6 +2,7 @@
 #import bevy_render::view::View
 #import bevy_incandescent::{
     ray_marching::shadow_2d_types::SdfMeta,
+    math::{is_point_inside_sector},
     types::{AmbientLight2d, PointLight2d},
 }
 
@@ -21,15 +22,20 @@ var sdf_tex: texture_storage_2d<rgba32float, read>;
 var<uniform> sdf_meta: SdfMeta;
 
 @group(0) @binding(5)
+var<uniform> ambient_light: AmbientLight2d;
+
+@group(0) @binding(6)
 var<storage> point_lights: array<PointLight2d>;
 
 fn ray_marching(px: vec2f, dir: vec2f, center: vec2f, radius: f32) -> bool {
     var current = px;
     let tex_fsize = vec2f(sdf_meta.size);
 
-    while true {
-        let closest = textureLoad(sdf_tex, vec2i(current)).r;
-        if closest < 0.1 || distance(current, center) > radius {
+    while current.x > 0. && current.x < tex_fsize.x
+          && current.y > 0. && current.y < tex_fsize.y {
+        let sdf_data = textureLoad(sdf_tex, vec2i(current)).rg;
+        let closest = sdf_data.r;
+        if closest < 0.1 {
             return false;
         }
         current += dir * min(closest, distance(current, center));
@@ -37,7 +43,7 @@ fn ray_marching(px: vec2f, dir: vec2f, center: vec2f, radius: f32) -> bool {
             return true;
         }
     }
-    return false;
+    return true;
 }
 
 @fragment
@@ -47,20 +53,23 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
 
     var color = vec3f(0.);
     for (var i_light = 0u; i_light < arrayLength(&point_lights); i_light++) {
-        let light_range_ss = max(point_lights[i_light].range_ss * screen_size.x, 0.);
-        let light_radius_ss = max(point_lights[i_light].radius_ss * screen_size.x, 0.);
-        let light_pos_ss = point_lights[i_light].position_ss * screen_size;
+        let light = &point_lights[i_light];
+        let light_range_ss = max((*light).range_ss * screen_size.x, 0.);
+        let light_radius_ss = max((*light).radius_ss * screen_size.x, 0.);
+        let light_pos_ss = (*light).position_ss * screen_size;
         let dir = normalize(light_pos_ss - vec2f(px));
 
-        if ray_marching(vec2f(px), dir, light_pos_ss, light_range_ss) {
-            let atten = saturate(
-                (distance(vec2f(px), light_pos_ss) - light_radius_ss) / (light_range_ss - light_radius_ss)
-            );
-            color += point_lights[i_light].color.rgb * (1. - atten);
-            // color = vec3f(atten, 0., 0.);
+        if is_point_inside_sector(vec2f(px), light_pos_ss, light_range_ss, (*light).angles) {
+            if ray_marching(vec2f(px), dir, light_pos_ss, light_range_ss) {
+                let atten = saturate(
+                    (distance(vec2f(px), light_pos_ss) - light_radius_ss) / (light_range_ss - light_radius_ss)
+                );
+                color += (*light).color.rgb * (1. - atten);
+            }
         }
     }
     
     return textureSample(main_tex, main_tex_sampler, in.uv)
+           * vec4f(ambient_light.color.rgb * ambient_light.intensity, 1.)
            + vec4f(color, 0.);
 }

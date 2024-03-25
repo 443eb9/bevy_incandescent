@@ -11,12 +11,12 @@ fn is_point_inside_sector(
     radius: f32,
     angles: array<f32, 2>,
 ) -> bool {
-    if angles[1] >= TAU {
+    if angles[1] - angles[0] >= TAU - 0.001 {
         return true;
     }
 
     let p0 = point - center;
-    let sqr_dist = p0.x * p0.x + p0.y * p0.y;
+    let sqr_dist = dot(p0, p0);
     if sqr_dist > radius * radius {
         return false;
     }

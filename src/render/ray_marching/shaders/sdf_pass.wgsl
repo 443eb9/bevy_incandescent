@@ -14,6 +14,9 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3u) {
     }
 
     let px_data = textureLoad(sdf_tex, px);
-    let d = distance(vec2f(px), vec2f(px_data.xy));
-    textureStore(sdf_tex, px, vec4f(d, d, d, 1.));
+    let interior_closest = distance(vec2f(px), textureLoad(sdf_tex, px).rg);
+    let exterior_closest = distance(vec2f(px), textureLoad(sdf_tex, px).ba);
+    // let interior_closest = distance(vec2f(px) / vec2f(sdf_meta.size), textureLoad(sdf_tex, px).rg / vec2f(sdf_meta.size));
+    // let exterior_closest = distance(vec2f(px) / vec2f(sdf_meta.size), textureLoad(sdf_tex, px).ba / vec2f(sdf_meta.size));
+    textureStore(sdf_tex, px, vec4f(interior_closest, exterior_closest, 0., 1.));
 }

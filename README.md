@@ -1,3 +1,5 @@
+# NOT READY FOR PRODUCTION USE YET!
+
 # Bevy Incandescent 💡
 
 A 2d lighting crate for bevy. Currently wip.

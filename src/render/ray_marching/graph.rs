@@ -21,8 +21,8 @@ use bevy::{
 use crate::{
     ecs::ShadowView2d,
     render::{
-        light::GpuLights2d,
-        universal_buffers::{BooleanBuffer, NumberBuffer},
+        light::{GpuAmbientLight2dBuffer, GpuLights2d},
+        universal_buffers::NumberBuffer,
         DynamicUniformIndex,
     },
 };
@@ -131,7 +131,6 @@ impl Node for Shadow2dJfaPrepassNode {
         let main_texture_view = &shadow_view.attachment.texture.default_view;
         let sdf_textures = world.resource::<SdfTextureStorage>();
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
-        let boolean_buffer = world.resource::<BooleanBuffer>();
 
         let sdf_texture = sdf_textures.get_sdf_texture(graph.view_entity());
         let bind_group = render_context.render_device().create_bind_group(
@@ -139,9 +138,8 @@ impl Node for Shadow2dJfaPrepassNode {
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
                 main_texture_view,
-                &sdf_texture.get_inner_texture().texture_view,
+                &sdf_texture.get_primary_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
-                boolean_buffer.binding(),
             )),
         );
 
@@ -160,11 +158,7 @@ impl Node for Shadow2dJfaPrepassNode {
                 });
 
         compute_pass.set_pipeline(compute_pipeline);
-        compute_pass.set_bind_group(
-            0,
-            &bind_group,
-            &[meta_offset.index(), boolean_buffer.get_index(false)],
-        );
+        compute_pass.set_bind_group(0, &bind_group, &[meta_offset.index()]);
         compute_pass.dispatch_workgroups(
             work_group_count.x,
             work_group_count.y,
@@ -220,8 +214,8 @@ impl Node for Shadow2dJfaPassNode {
             "shadow_2d_jfa_pass_bind_group",
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
-                &sdf_texture.get_inner_texture().texture_view,
-                &sdf_texture.get_outer_texture().texture_view,
+                &sdf_texture.get_primary_texture().texture_view,
+                &sdf_texture.get_secondary_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
                 number_buffer.binding(),
             )),
@@ -231,8 +225,8 @@ impl Node for Shadow2dJfaPassNode {
             "shadow_2d_jfa_pass_bind_group",
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
-                &sdf_texture.get_outer_texture().texture_view,
-                &sdf_texture.get_inner_texture().texture_view,
+                &sdf_texture.get_secondary_texture().texture_view,
+                &sdf_texture.get_primary_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
                 number_buffer.binding(),
             )),
@@ -394,6 +388,7 @@ impl Node for Shadow2dMainPassNode {
 
         let sdf_textures = world.resource::<SdfTextureStorage>();
         let gpu_meta_buffers = world.resource::<GpuMetaBuffers>();
+        let gpu_ambient_light_buffer = world.resource::<GpuAmbientLight2dBuffer>();
         let view_uniforms = world.resource::<ViewUniforms>();
         let post_process = view_target.post_process_write();
 
@@ -407,6 +402,7 @@ impl Node for Shadow2dMainPassNode {
                 view_uniforms.uniforms.binding().unwrap(),
                 &sdf_texture.get_texture().texture_view,
                 gpu_meta_buffers.sdf_meta_binding(),
+                gpu_ambient_light_buffer.binding(),
                 gpu_lights.point_lights_binding(),
             )),
         );

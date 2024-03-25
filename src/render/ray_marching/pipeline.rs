@@ -6,9 +6,9 @@ use bevy::{
     },
     render::{
         render_resource::{
-            AddressMode, BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
+            BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
             CachedRenderPipelineId, ColorTargetState, ColorWrites, ComputePipelineDescriptor,
-            FilterMode, FragmentState, MultisampleState, PipelineCache, PrimitiveState,
+            FragmentState, MultisampleState, PipelineCache, PrimitiveState,
             RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages,
             StorageTextureAccess, TextureFormat, TextureSampleType,
         },
@@ -20,7 +20,7 @@ use bevy::{
 
 use bevy::render::render_resource::binding_types as binding;
 
-use crate::render::light::GpuPointLight2d;
+use crate::render::light::{GpuAmbientLight2d, GpuPointLight2d};
 
 use super::{
     SdfMeta, SHADOW_JFA_PASS_SHADER, SHADOW_JFA_PREPASS_SHADER, SHADOW_MAIN_PASS_SHADER,
@@ -51,8 +51,6 @@ impl FromWorld for Shadow2dJfaPrepassPipeline {
                     ),
                     // Sdf meta
                     binding::uniform_buffer::<SdfMeta>(true),
-                    // Is inverted
-                    binding::uniform_buffer::<u32>(true),
                 ),
             ),
         );
@@ -200,6 +198,8 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     ),
                     // Sdf meta
                     binding::uniform_buffer::<SdfMeta>(true),
+                    // Ambient light
+                    binding::uniform_buffer::<GpuAmbientLight2d>(false),
                     // Point lights
                     binding::storage_buffer_read_only::<GpuPointLight2d>(false),
                 ),

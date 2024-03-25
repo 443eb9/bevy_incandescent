@@ -1,9 +1,15 @@
-use bevy::{ecs::system::Resource, render::extract_resource::ExtractResource};
+use bevy::{
+    ecs::{reflect::ReflectResource, system::Resource},
+    reflect::Reflect,
+    render::extract_resource::ExtractResource,
+};
 
-#[derive(Resource, ExtractResource, Clone, Copy)]
+#[derive(Resource, ExtractResource, Clone, Copy, Reflect)]
+#[reflect(Resource)]
 pub struct RayMarchingConfig {
     pub scale: f32,
     pub alpha_threshold: f32,
+    pub edge_lighting: f32,
 }
 
 impl Default for RayMarchingConfig {
@@ -11,6 +17,7 @@ impl Default for RayMarchingConfig {
         Self {
             scale: 1.,
             alpha_threshold: 0.9,
+            edge_lighting: 5.,
         }
     }
 }
