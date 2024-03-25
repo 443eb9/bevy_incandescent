@@ -31,7 +31,7 @@ use super::{
         Shadow2dDistortPassPipeline, Shadow2dMainPassPipeline, Shadow2dPrepassPipeline,
         Shadow2dReductionPipeline,
     },
-    GpuMetaBuffers, GpuShadowMapMeta, PoissonDiskBuffer, ShadowMap2dStorage,
+    AlphaMapAttachment, GpuMetaBuffers, GpuShadowMapMeta, PoissonDiskBuffer, ShadowMap2dStorage,
 };
 
 #[derive(RenderLabel, Debug, Hash, PartialEq, Eq, Clone)]
@@ -44,7 +44,14 @@ pub enum Shadow2dNode {
 }
 
 pub struct Shadow2dMeshPassNode {
-    main_view_query: QueryState<Read<VisibleEntities>, With<MainShadowCameraDriver>>,
+    main_view_query: QueryState<
+        (
+            Read<VisibleEntities>,
+            Read<AlphaMapAttachment>,
+            Read<RenderPhase<Transparent2d>>,
+        ),
+        With<MainShadowCameraDriver>,
+    >,
     light_view_query: QueryState<(Read<RenderPhase<Transparent2d>>, Read<ShadowView2d>)>,
 }
 
@@ -71,9 +78,19 @@ impl Node for Shadow2dMeshPassNode {
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let main_view_entity = graph.view_entity();
-        let Ok(view_lights) = self.main_view_query.get_manual(world, main_view_entity) else {
+        let Ok((view_lights, alpha_map_attachment, transparent_phase)) =
+            self.main_view_query.get_manual(world, main_view_entity)
+        else {
             return Ok(());
         };
+
+        let mut alpha_map_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
+            label: Some("alpha_map_pass"),
+            color_attachments: &[Some(alpha_map_attachment.attachment.get_attachment())],
+            ..Default::default()
+        });
+        transparent_phase.render(&mut alpha_map_pass, world, main_view_entity);
+        drop(alpha_map_pass);
 
         for light_entity in view_lights.iter().copied() {
             let Ok((transparent_phase, shadow_view)) =
@@ -83,11 +100,9 @@ impl Node for Shadow2dMeshPassNode {
             };
 
             let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-                label: Some("shadow_2d_mesh_pass"),
+                label: Some("light_2d_mesh_pass"),
                 color_attachments: &[Some(shadow_view.attachment.get_attachment())],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
+                ..Default::default()
             });
 
             transparent_phase.render(&mut render_pass, world, light_entity);
@@ -142,11 +157,10 @@ impl Node for Shadow2dPrepassNode {
 
         for (shadow_view, uniform_index) in self.light_view_query.iter_manual(world) {
             let bind_group = render_context.render_device().create_bind_group(
-                "shadow_2d_prepass_bind_group",
+                "light_2d_prepass_bind_group",
                 &pipeline.prepass_layout,
                 &BindGroupEntries::sequential((
                     &shadow_view.attachment.texture.default_view,
-                    shadow_map_storage.alpha_map_view(),
                     shadow_map_storage.texture_view_primary(),
                     gpu_meta_buffers.shadow_map_meta_buffer_binding(),
                 )),
@@ -156,7 +170,7 @@ impl Node for Shadow2dPrepassNode {
                 render_context
                     .command_encoder()
                     .begin_compute_pass(&ComputePassDescriptor {
-                        label: Some("shadow_2d_prepass"),
+                        label: Some("light_2d_prepass"),
                         timestamp_writes: None,
                     });
 
@@ -221,7 +235,7 @@ impl Node for Shadow2dDistortPassNode {
         let work_group_count = shadow_map_storage.work_group_count_total();
 
         let bind_group = render_context.render_device().create_bind_group(
-            "shadow_2d_distort_pass_bind_group",
+            "light_2d_distort_pass_bind_group",
             &pipeline.distort_pass_layout,
             &BindGroupEntries::sequential((
                 shadow_map_storage.texture_view_primary(),
@@ -234,7 +248,7 @@ impl Node for Shadow2dDistortPassNode {
             render_context
                 .command_encoder()
                 .begin_compute_pass(&ComputePassDescriptor {
-                    label: Some("shadow_2d_distort_pass"),
+                    label: Some("light_2d_distort_pass"),
                     timestamp_writes: None,
                 });
 
@@ -299,7 +313,7 @@ impl Node for Shadow2dReductionNode {
         let number_buffer = world.resource::<NumberBuffer>();
 
         let bind_group_primary_source = render_context.render_device().create_bind_group(
-            "shadow_2d_reduction_pass_bind_group",
+            "light_2d_reduction_pass_bind_group",
             &pipeline.reduction_layout,
             &BindGroupEntries::sequential((
                 shadow_map_storage.texture_view_primary(),
@@ -309,7 +323,7 @@ impl Node for Shadow2dReductionNode {
             )),
         );
         let bind_group_secondary_source = render_context.render_device().create_bind_group(
-            "shadow_2d_reduction_pass_bind_group",
+            "light_2d_reduction_pass_bind_group",
             &pipeline.reduction_layout,
             &BindGroupEntries::sequential((
                 shadow_map_storage.texture_view_secondary(),
@@ -325,7 +339,7 @@ impl Node for Shadow2dReductionNode {
                 render_context
                     .command_encoder()
                     .begin_compute_pass(&ComputePassDescriptor {
-                        label: Some("shadow_2d_reduction_pass"),
+                        label: Some("light_2d_reduction_pass"),
                         timestamp_writes: None,
                     });
             let offset = number_buffer.get_index(t as u32);
@@ -344,7 +358,12 @@ impl Node for Shadow2dReductionNode {
 }
 
 pub struct Shadow2dMainPassNode {
-    main_view_query: QueryState<(Read<ViewTarget>, Read<ViewUniformOffset>, Read<GpuLights2d>)>,
+    main_view_query: QueryState<(
+        Read<ViewTarget>,
+        Read<ViewUniformOffset>,
+        Read<GpuLights2d>,
+        Read<AlphaMapAttachment>,
+    )>,
     light_view_query: QueryState<(), With<ShadowView2d>>,
 }
 
@@ -371,7 +390,7 @@ impl Node for Shadow2dMainPassNode {
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let main_view_entity = graph.view_entity();
-        let Ok((view_target, main_view_offset, gpu_lights)) =
+        let Ok((view_target, main_view_offset, gpu_lights, alpha_map)) =
             self.main_view_query.get_manual(world, main_view_entity)
         else {
             return Ok(());
@@ -397,12 +416,13 @@ impl Node for Shadow2dMainPassNode {
         let poisson_disk_buffer = world.resource::<PoissonDiskBuffer>();
 
         let bind_group = render_context.render_device().create_bind_group(
-            "shadow_2d_main_pass",
+            "light_2d_main_pass",
             &pipeline.main_pass_layout,
             &BindGroupEntries::sequential((
                 post_process.source,
                 &pipeline.main_texture_sampler,
-                shadow_map_storage.alpha_map_view(),
+                &alpha_map.attachment.texture.default_view,
+                &pipeline.main_texture_sampler,
                 shadow_map_storage.final_texture_view(),
                 view_uniforms.uniforms.binding().unwrap(),
                 gpu_meta_buffers.shadow_map_meta_buffer_binding(),
@@ -413,7 +433,7 @@ impl Node for Shadow2dMainPassNode {
         );
 
         let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-            label: Some("shadow_2d_main_pass"),
+            label: Some("light_2d_main_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &post_process.destination,
                 resolve_target: None,

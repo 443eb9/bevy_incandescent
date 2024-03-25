@@ -1,4 +1,4 @@
-#import bevy_incandescent::catalinzz::shadow_2d_types::ShadowMapMeta;
+#import bevy_incandescent::catalinzz::types::ShadowMapMeta;
 
 @group(0) @binding(0)
 var source_shadow_map: texture_storage_2d_array<

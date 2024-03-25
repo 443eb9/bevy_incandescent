@@ -24,8 +24,8 @@ use bevy::render::render_resource::binding_types as binding;
 use crate::render::light::{GpuAmbientLight2d, GpuPointLight2d};
 
 use super::{
-    GpuShadowMapMeta, ALPHA_MAP_FORMAT, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER,
-    SHADOW_MAP_FORMAT, SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
+    GpuShadowMapMeta, SHADOW_DISTORT_PASS_SHADER, SHADOW_MAIN_PASS_SHADER, SHADOW_MAP_FORMAT,
+    SHADOW_PREPASS_SHADER, SHADOW_REDUCTION_PASS_SHADER,
 };
 
 fn get_shader_defs() -> Vec<ShaderDefVal> {
@@ -47,17 +47,12 @@ impl FromWorld for Shadow2dPrepassPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         let prepass_layout = render_device.create_bind_group_layout(
-            "shadow_2d_prepass_layout",
+            "light_2d_prepass_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::COMPUTE,
                 (
                     // Main texture
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
-                    // Alpha map
-                    binding::texture_storage_2d_array(
-                        ALPHA_MAP_FORMAT,
-                        StorageTextureAccess::WriteOnly,
-                    ),
                     // Shadow map
                     binding::texture_storage_2d_array(
                         SHADOW_MAP_FORMAT,
@@ -72,7 +67,7 @@ impl FromWorld for Shadow2dPrepassPipeline {
         let cached_id = world
             .resource_mut::<PipelineCache>()
             .queue_compute_pipeline(ComputePipelineDescriptor {
-                label: Some("shadow_2d_prepass_pipeline".into()),
+                label: Some("light_2d_prepass_pipeline".into()),
                 layout: vec![prepass_layout.clone()],
                 push_constant_ranges: vec![],
                 shader: SHADOW_PREPASS_SHADER,
@@ -98,7 +93,7 @@ impl FromWorld for Shadow2dDistortPassPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         let distort_layout = render_device.create_bind_group_layout(
-            "shadow_2d_distort_layout",
+            "light_2d_distort_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::COMPUTE,
                 (
@@ -121,7 +116,7 @@ impl FromWorld for Shadow2dDistortPassPipeline {
         let cached_id = world
             .resource_mut::<PipelineCache>()
             .queue_compute_pipeline(ComputePipelineDescriptor {
-                label: Some("shadow_2d_distort_pipeline".into()),
+                label: Some("light_2d_distort_pipeline".into()),
                 layout: vec![distort_layout.clone()],
                 push_constant_ranges: vec![],
                 shader: SHADOW_DISTORT_PASS_SHADER,
@@ -147,7 +142,7 @@ impl FromWorld for Shadow2dReductionPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         let reduction_layout = render_device.create_bind_group_layout(
-            "shadow_2d_reduction_layout",
+            "light_2d_reduction_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::COMPUTE,
                 (
@@ -172,7 +167,7 @@ impl FromWorld for Shadow2dReductionPipeline {
         let cached_id = world
             .resource_mut::<PipelineCache>()
             .queue_compute_pipeline(ComputePipelineDescriptor {
-                label: Some("shadow_2d_reduction_pipeline".into()),
+                label: Some("light_2d_reduction_pipeline".into()),
                 layout: vec![reduction_layout.clone()],
                 push_constant_ranges: vec![],
                 shader: SHADOW_REDUCTION_PASS_SHADER,
@@ -207,10 +202,8 @@ impl FromWorld for Shadow2dMainPassPipeline {
                     binding::texture_2d(TextureSampleType::Float { filterable: true }),
                     binding::sampler(SamplerBindingType::Filtering),
                     // Alpha map
-                    binding::texture_storage_2d_array(
-                        ALPHA_MAP_FORMAT,
-                        StorageTextureAccess::ReadOnly,
-                    ),
+                    binding::texture_2d(TextureSampleType::Float { filterable: true }),
+                    binding::sampler(SamplerBindingType::Filtering),
                     // Shadow map
                     binding::texture_storage_2d_array(
                         SHADOW_MAP_FORMAT,
@@ -248,7 +241,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
             world
                 .resource_mut::<PipelineCache>()
                 .queue_render_pipeline(RenderPipelineDescriptor {
-                    label: Some("shadow_2d_main_pass_pipeline".into()),
+                    label: Some("light_2d_main_pass_pipeline".into()),
                     layout: vec![main_pass_layout.clone()],
                     vertex: fullscreen_shader_vertex_state(),
                     fragment: Some(FragmentState {

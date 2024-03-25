@@ -1,7 +1,7 @@
 #import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
 #import bevy_render::view::View
 #import bevy_incandescent::{
-    catalinzz::shadow_2d_types::ShadowMapMeta,
+    catalinzz::types::ShadowMapMeta,
     lighting::get_distance_attenuation,
     math::{is_point_inside_sector},
     types::{AmbientLight2d, PointLight2d},
@@ -14,9 +14,12 @@ var main_tex: texture_2d<f32>;
 var main_tex_sampler: sampler;
 
 @group(0) @binding(2)
-var alpha_map: texture_storage_2d_array<r32float, read>;
+var alpha_map: texture_2d<f32>;
 
 @group(0) @binding(3)
+var alpha_map_sampler: sampler;
+
+@group(0) @binding(4)
 var shadow_map: texture_storage_2d_array<
 #ifdef COMPATIBILITY
     rgba32float,
@@ -26,19 +29,19 @@ var shadow_map: texture_storage_2d_array<
     read
 >;
 
-@group(0) @binding(4)
+@group(0) @binding(5)
 var<uniform> main_view: View;
 
-@group(0) @binding(5)
+@group(0) @binding(6)
 var<uniform> shadow_map_meta: ShadowMapMeta;
 
-@group(0) @binding(6)
+@group(0) @binding(7)
 var<uniform> ambient_light: AmbientLight2d;
 
-@group(0) @binding(7)
+@group(0) @binding(8)
 var<storage> poisson_disk: array<vec2f>;
 
-@group(0) @binding(8)
+@group(0) @binding(9)
 var<storage> point_lights: array<PointLight2d>;
 
 fn get_caster_distance_h(rel_ss: vec2f, i_light: u32) -> f32 {
@@ -61,13 +64,9 @@ fn get_caster_distance(rel_ss: vec2f, i_light: u32) -> f32 {
     }
 }
 
-fn pcf(rel_ss: vec2f, sample_count: u32, sample_radius: f32, i_light: u32) -> f32 {
-    if get_alpha(rel_ss, i_light) > shadow_map_meta.alpha_threshold {
-        return 0.;
-    }
-
+fn pcf(rel_ss: vec2f, sample_radius: f32, i_light: u32) -> f32 {
     var visibility = 0.;
-    for (var i: u32 = 0; i < sample_count; i++) {
+    for (var i: u32 = 0; i < shadow_map_meta.pcf_samples; i++) {
         let sample_ss = rel_ss + poisson_disk[i] * sample_radius;
         let dist = get_caster_distance(sample_ss, i_light);
         
@@ -75,13 +74,12 @@ fn pcf(rel_ss: vec2f, sample_count: u32, sample_radius: f32, i_light: u32) -> f3
             visibility += 1.;
         }
     }
-    visibility /= f32(sample_count);
+    visibility /= f32(shadow_map_meta.pcf_samples);
     return visibility;
 }
 
-fn get_alpha(rel_ss: vec2f, i_light: u32) -> f32 {
-    let px = (rel_ss / 2. + 1.) / 2. * f32(shadow_map_meta.size);
-    return textureLoad(alpha_map, vec2i(px), i_light).r;
+fn get_alpha(uv: vec2f, i_light: u32) -> f32 {
+    return textureSample(alpha_map, alpha_map_sampler, uv).a;
 }
 
 @fragment
@@ -109,7 +107,11 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4f {
         let pcf_radius_rel = shadow_map_meta.pcf_radius / light_range_ss;
 
         if is_point_inside_sector(rel_px_ss * vec2f(1., -1.), vec2f(0.), light_range_ss, (*light).angles) {
-            var visibility = pcf(rel_ss, shadow_map_meta.pcf_samples, pcf_radius_rel, i_light);
+            if get_alpha(in.uv, i_light) > shadow_map_meta.alpha_threshold {
+                continue;
+            }
+
+            var visibility = pcf(rel_ss, pcf_radius_rel, i_light);
             visibility *= 1. - saturate(
                 (rel_px_dist - light_radius_ss) / (light_range_ss - light_radius_ss)
             );

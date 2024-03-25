@@ -6,13 +6,14 @@ use bevy::{
         Transparent2d,
     },
     ecs::{
+        component::Component,
         entity::Entity,
         query::With,
         schedule::IntoSystemConfigs,
         system::{Commands, Query, Res, ResMut, Resource},
         world::{FromWorld, World},
     },
-    math::{UVec3, UVec4, Vec2},
+    math::{UVec3, UVec4, Vec2, Vec4Swizzles},
     render::{
         camera::{camera_system, OrthographicProjection, PerspectiveProjection, Projection},
         color::Color,
@@ -20,10 +21,9 @@ use bevy::{
         render_graph::RenderGraphApp,
         render_phase::RenderPhase,
         render_resource::{
-            AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
-            GpuArrayBuffer, SamplerDescriptor, Shader, ShaderType, TextureAspect,
-            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
-            TextureViewDescriptor, TextureViewDimension,
+            BindingResource, DynamicUniformBuffer, Extent3d, GpuArrayBuffer, SamplerDescriptor,
+            Shader, ShaderType, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            TextureView, TextureViewDescriptor, TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, ColorAttachment, GpuImage, TextureCache},
@@ -70,44 +70,37 @@ pub const SHADOW_MAP_FORMAT: TextureFormat = TextureFormat::Rgba32Float;
 #[cfg(not(feature = "compatibility"))]
 pub const SHADOW_MAP_FORMAT: TextureFormat = TextureFormat::Rg32Float;
 
-pub const ALPHA_MAP_FORMAT: TextureFormat = TextureFormat::R32Float;
-
 pub struct CatalinzzApproachPlugin;
 
 impl Plugin for CatalinzzApproachPlugin {
     fn build(&self, app: &mut App) {
-        load_internal_asset!(
-            app,
-            SHADOW_TYPES,
-            "shaders/shadow_2d_types.wgsl",
-            Shader::from_wgsl
-        );
+        load_internal_asset!(app, SHADOW_TYPES, "shaders/types.wgsl", Shader::from_wgsl);
 
         load_internal_asset!(
             app,
             SHADOW_DISTORT_PASS_SHADER,
-            "shaders/shadow_2d_distort_pass.wgsl",
+            "shaders/distort_pass.wgsl",
             Shader::from_wgsl
         );
 
         load_internal_asset!(
             app,
             SHADOW_PREPASS_SHADER,
-            "shaders/shadow_2d_prepass.wgsl",
+            "shaders/prepass.wgsl",
             Shader::from_wgsl
         );
 
         load_internal_asset!(
             app,
             SHADOW_REDUCTION_PASS_SHADER,
-            "shaders/shadow_2d_reduction_pass.wgsl",
+            "shaders/reduction_pass.wgsl",
             Shader::from_wgsl
         );
 
         load_internal_asset!(
             app,
             SHADOW_MAIN_PASS_SHADER,
-            "shaders/shadow_2d_main_pass.wgsl",
+            "shaders/main_pass.wgsl",
             Shader::from_wgsl
         );
 
@@ -145,7 +138,8 @@ impl Plugin for CatalinzzApproachPlugin {
             .add_systems(ExtractSchedule, (extract_lights, extract_light_view))
             .add_systems(
                 Render,
-                (prepare_lights, prepare_poisson_disk).in_set(RenderSet::Prepare),
+                (prepare_lights, prepare_poisson_disk, prepare_main_views)
+                    .in_set(RenderSet::Prepare),
             )
             .add_render_graph_node::<Shadow2dMeshPassNode>(Core2d, Shadow2dNode::Shadow2dMeshPass)
             .add_render_graph_node::<Shadow2dPrepassNode>(Core2d, Shadow2dNode::Shadow2dPrepass)
@@ -320,7 +314,6 @@ pub struct ShadowMap2dStorage {
     meta: ShadowMap2dMeta,
     primary_shadow_map: Option<GpuImage>,
     secondary_shadow_map: Option<GpuImage>,
-    alpha_map: Option<GpuImage>,
     work_group_count_per_light: UVec3,
     work_group_count_total: UVec3,
     num_reductions: u32,
@@ -335,7 +328,6 @@ impl ShadowMap2dStorage {
         self.meta = meta;
         self.primary_shadow_map = Some(self.create_shadow_map(render_device, SHADOW_MAP_FORMAT));
         self.secondary_shadow_map = Some(self.create_shadow_map(render_device, SHADOW_MAP_FORMAT));
-        self.alpha_map = Some(self.create_shadow_map(render_device, ALPHA_MAP_FORMAT));
         self.work_group_count_per_light = UVec3 {
             x: meta.size.div_ceil(SHADOW_WORKGROUP_SIZE.x),
             y: meta.size.div_ceil(SHADOW_WORKGROUP_SIZE.y),
@@ -363,11 +355,6 @@ impl ShadowMap2dStorage {
     #[inline]
     pub fn texture_view_secondary(&self) -> &TextureView {
         &self.secondary_shadow_map.as_ref().unwrap().texture_view
-    }
-
-    #[inline]
-    pub fn alpha_map_view(&self) -> &TextureView {
-        &self.alpha_map.as_ref().unwrap().texture_view
     }
 
     #[inline]
@@ -419,32 +406,24 @@ impl ShadowMap2dStorage {
                 label: Some("shadow_map_2d_view"),
                 format: Some(shadow_map.format()),
                 dimension: Some(TextureViewDimension::D2Array),
-                aspect: TextureAspect::All,
-                base_mip_level: 0,
-                mip_level_count: None,
-                base_array_layer: 0,
                 array_layer_count: Some(meta.count),
+                ..Default::default()
             }),
             texture_format: shadow_map.format(),
             texture: shadow_map,
             sampler: render_device.create_sampler(&SamplerDescriptor {
                 label: Some("shadow_map_2d_sampler"),
-                address_mode_u: AddressMode::ClampToEdge,
-                address_mode_v: AddressMode::ClampToEdge,
-                address_mode_w: AddressMode::ClampToEdge,
-                mag_filter: FilterMode::Nearest,
-                min_filter: FilterMode::Nearest,
-                mipmap_filter: FilterMode::Nearest,
-                lod_min_clamp: 0.,
-                lod_max_clamp: f32::MAX,
-                compare: None,
-                anisotropy_clamp: 1,
-                border_color: None,
+                ..Default::default()
             }),
             size: Vec2::splat(meta.size as f32),
             mip_level_count: 0,
         }
     }
+}
+
+#[derive(Component)]
+pub struct AlphaMapAttachment {
+    pub attachment: ColorAttachment,
 }
 
 #[derive(Resource)]
@@ -583,5 +562,39 @@ pub fn prepare_lights(
         commands
             .entity(shadow_camera)
             .insert(MainShadowCameraDriver);
+    }
+}
+
+fn prepare_main_views(
+    mut commands: Commands,
+    mut texture_cache: ResMut<TextureCache>,
+    main_views: Query<(Entity, &ExtractedView), With<ViewTarget>>,
+    render_device: Res<RenderDevice>,
+) {
+    for (main_view_entity, main_view) in main_views.iter() {
+        let viewport = main_view.viewport.zw();
+        let attachment = texture_cache.get(
+            &render_device,
+            TextureDescriptor {
+                label: Some("alpha_map_attachment"),
+                size: Extent3d {
+                    width: viewport.x,
+                    height: viewport.y,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::bevy_default(),
+                usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            },
+        );
+
+        commands
+            .entity(main_view_entity)
+            .insert(AlphaMapAttachment {
+                attachment: ColorAttachment::new(attachment, None, Some(Color::NONE)),
+            });
     }
 }

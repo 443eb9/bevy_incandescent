@@ -57,12 +57,7 @@ pub struct RayMarchingApproachPlugin;
 
 impl Plugin for RayMarchingApproachPlugin {
     fn build(&self, app: &mut App) {
-        load_internal_asset!(
-            app,
-            SHADOW_TYPES,
-            "shaders/shadow_2d_types.wgsl",
-            Shader::from_wgsl
-        );
+        load_internal_asset!(app, SHADOW_TYPES, "shaders/types.wgsl", Shader::from_wgsl);
 
         load_internal_asset!(
             app,
@@ -88,7 +83,7 @@ impl Plugin for RayMarchingApproachPlugin {
         load_internal_asset!(
             app,
             SHADOW_MAIN_PASS_SHADER,
-            "shaders/shadow_2d_main_pass.wgsl",
+            "shaders/main_pass.wgsl",
             Shader::from_wgsl
         );
 

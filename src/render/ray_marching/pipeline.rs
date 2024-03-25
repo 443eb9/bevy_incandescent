@@ -38,7 +38,7 @@ impl FromWorld for Shadow2dJfaPrepassPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         let jfa_pass_layout = render_device.create_bind_group_layout(
-            "shadow_2d_jfa_prepass_layout",
+            "light_2d_jfa_prepass_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::COMPUTE,
                 (
@@ -58,7 +58,7 @@ impl FromWorld for Shadow2dJfaPrepassPipeline {
         let cached_id = world
             .resource_mut::<PipelineCache>()
             .queue_compute_pipeline(ComputePipelineDescriptor {
-                label: Some("shadow_2d_jfa_prepass_pipeline".into()),
+                label: Some("light_2d_jfa_prepass_pipeline".into()),
                 layout: vec![jfa_pass_layout.clone()],
                 push_constant_ranges: vec![],
                 shader: SHADOW_JFA_PREPASS_SHADER,
@@ -84,7 +84,7 @@ impl FromWorld for Shadow2dJfaPassPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         let jfa_pass_layout = render_device.create_bind_group_layout(
-            "shadow_2d_jfa_pass_layout",
+            "light_2d_jfa_pass_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::COMPUTE,
                 (
@@ -110,7 +110,7 @@ impl FromWorld for Shadow2dJfaPassPipeline {
             world
                 .resource::<PipelineCache>()
                 .queue_compute_pipeline(ComputePipelineDescriptor {
-                    label: Some("shadow_2d_jfa_pass_pipeline".into()),
+                    label: Some("light_2d_jfa_pass_pipeline".into()),
                     layout: vec![jfa_pass_layout.clone()],
                     push_constant_ranges: vec![],
                     shader: SHADOW_JFA_PASS_SHADER,
@@ -136,7 +136,7 @@ impl FromWorld for Shadow2dSdfPassPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         let sdf_pass_layout = render_device.create_bind_group_layout(
-            "shadow_2d_sdf_pass_layout",
+            "light_2d_sdf_pass_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::COMPUTE,
                 (
@@ -155,7 +155,7 @@ impl FromWorld for Shadow2dSdfPassPipeline {
             world
                 .resource::<PipelineCache>()
                 .queue_compute_pipeline(ComputePipelineDescriptor {
-                    label: Some("shadow_2d_jfa_pass_pipeline".into()),
+                    label: Some("light_2d_jfa_pass_pipeline".into()),
                     layout: vec![sdf_pass_layout.clone()],
                     push_constant_ranges: vec![],
                     shader: SHADOW_SDF_PASS_SHADER,
@@ -182,7 +182,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         let main_pass_layout = render_device.create_bind_group_layout(
-            "shadow_2d_main_pass_layout",
+            "light_2d_main_pass_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::FRAGMENT,
                 (
@@ -207,7 +207,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
         );
 
         let main_texture_sampler = render_device.create_sampler(&SamplerDescriptor {
-            label: Some("shadow_2d_main_pass_sampler".into()),
+            label: Some("light_2d_main_pass_sampler".into()),
             ..Default::default()
         });
 
@@ -215,7 +215,7 @@ impl FromWorld for Shadow2dMainPassPipeline {
             world
                 .resource::<PipelineCache>()
                 .queue_render_pipeline(RenderPipelineDescriptor {
-                    label: Some("shadow_2d_main_pass_pipeline".into()),
+                    label: Some("light_2d_main_pass_pipeline".into()),
                     layout: vec![main_pass_layout.clone()],
                     push_constant_ranges: vec![],
                     vertex: fullscreen_shader_vertex_state(),

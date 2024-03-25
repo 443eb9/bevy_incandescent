@@ -1,4 +1,4 @@
-#import bevy_incandescent::ray_marching::shadow_2d_types::SdfMeta
+#import bevy_incandescent::ray_marching::types::SdfMeta
 
 @group(0) @binding(0)
 var sdf_tex: texture_storage_2d<rgba32float, read_write>;

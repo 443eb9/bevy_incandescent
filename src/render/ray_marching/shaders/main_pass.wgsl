@@ -1,7 +1,7 @@
 #import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
 #import bevy_render::view::View
 #import bevy_incandescent::{
-    ray_marching::shadow_2d_types::SdfMeta,
+    ray_marching::types::SdfMeta,
     math::{is_point_inside_sector},
     types::{AmbientLight2d, PointLight2d},
 }

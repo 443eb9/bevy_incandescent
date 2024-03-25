@@ -74,7 +74,7 @@ impl Node for Shadow2dMeshPassNode {
         };
 
         let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-            label: Some("shadow_2d_mesh_pass"),
+            label: Some("light_2d_mesh_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &shadow_view.attachment.texture.default_view,
                 resolve_target: None,
@@ -134,7 +134,7 @@ impl Node for Shadow2dJfaPrepassNode {
 
         let sdf_texture = sdf_textures.get_sdf_texture(graph.view_entity());
         let bind_group = render_context.render_device().create_bind_group(
-            "shadow_2d_jfa_prepass_bind_group",
+            "light_2d_jfa_prepass_bind_group",
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
                 main_texture_view,
@@ -153,7 +153,7 @@ impl Node for Shadow2dJfaPrepassNode {
             render_context
                 .command_encoder()
                 .begin_compute_pass(&ComputePassDescriptor {
-                    label: Some("shadow_2d_jfa_prepass_pass"),
+                    label: Some("light_2d_jfa_prepass_pass"),
                     timestamp_writes: None,
                 });
 
@@ -211,7 +211,7 @@ impl Node for Shadow2dJfaPassNode {
 
         let sdf_texture = sdf_textures.get_sdf_texture(main_view_entity);
         let bind_group_primary_source = render_context.render_device().create_bind_group(
-            "shadow_2d_jfa_pass_bind_group",
+            "light_2d_jfa_pass_bind_group",
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
                 &sdf_texture.get_primary_texture().texture_view,
@@ -222,7 +222,7 @@ impl Node for Shadow2dJfaPassNode {
         );
 
         let bind_group_secondary_source = render_context.render_device().create_bind_group(
-            "shadow_2d_jfa_pass_bind_group",
+            "light_2d_jfa_pass_bind_group",
             &pipeline.jfa_pass_layout,
             &BindGroupEntries::sequential((
                 &sdf_texture.get_secondary_texture().texture_view,
@@ -245,7 +245,7 @@ impl Node for Shadow2dJfaPassNode {
                 render_context
                     .command_encoder()
                     .begin_compute_pass(&ComputePassDescriptor {
-                        label: Some("shadow_2d_jfa_pass_pass"),
+                        label: Some("light_2d_jfa_pass_pass"),
                         timestamp_writes: None,
                     });
             let iteration_offset = number_buffer.get_index(i);
@@ -307,7 +307,7 @@ impl Node for Shadow2dSdfPassNode {
 
         let sdf_texture = sdf_textures.get_sdf_texture(graph.view_entity());
         let bind_group = render_context.render_device().create_bind_group(
-            "shadow_2d_sdf_pass_bind_group",
+            "light_2d_sdf_pass_bind_group",
             &pipeline.sdf_pass_layout,
             &BindGroupEntries::sequential((
                 &sdf_textures
@@ -328,7 +328,7 @@ impl Node for Shadow2dSdfPassNode {
             render_context
                 .command_encoder()
                 .begin_compute_pass(&ComputePassDescriptor {
-                    label: Some("shadow_2d_sdf_pass_pass"),
+                    label: Some("light_2d_sdf_pass_pass"),
                     timestamp_writes: None,
                 });
 
@@ -394,7 +394,7 @@ impl Node for Shadow2dMainPassNode {
 
         let sdf_texture = sdf_textures.get_sdf_texture(graph.view_entity());
         let bind_group = render_context.render_device().create_bind_group(
-            "shadow_2d_main_pass_bind_group",
+            "light_2d_main_pass_bind_group",
             &pipeline.main_pass_layout,
             &BindGroupEntries::sequential((
                 post_process.source,
@@ -408,7 +408,7 @@ impl Node for Shadow2dMainPassNode {
         );
 
         let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-            label: Some("shadow_2d_main_pass"),
+            label: Some("light_2d_main_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &post_process.destination,
                 resolve_target: None,

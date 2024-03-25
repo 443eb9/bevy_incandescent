@@ -93,16 +93,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ShadowCaster2dBundle::default(),
     ));
 
-    // commands.spawn(PointLight2dBundle {
-    //     point_light: PointLight2d {
-    //         color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
-    //         intensity: 1.,
-    //         range: 200.,
-    //         radius: 50.,
-    //     },
-    //     transform: Transform::from_xyz(50., 25., 0.),
-    //     ..Default::default()
-    // });
+    commands.spawn(PointLight2dBundle {
+        point_light: PointLight2d {
+            color: Color::rgb(rd.gen(), rd.gen(), rd.gen()),
+            intensity: 1.,
+            range: 200.,
+            radius: 50.,
+        },
+        transform: Transform::from_xyz(50., 25., 0.),
+        ..Default::default()
+    });
 
     commands.spawn(SpotLight2dBundle {
         spot_light: SpotLight2d {
@@ -111,8 +111,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             range: 400.,
             radius: 30.,
             sector: CircularSector::Angles {
-                start: std::f32::consts::FRAC_PI_6,
-                end: std::f32::consts::FRAC_PI_2 + std::f32::consts::PI,
+                start: std::f32::consts::PI + std::f32::consts::FRAC_PI_4,
+                end: std::f32::consts::TAU - std::f32::consts::FRAC_PI_6,
             },
         },
         transform: Transform::from_xyz(-50., -25., 0.),

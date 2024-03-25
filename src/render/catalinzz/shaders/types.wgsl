@@ -1,4 +1,4 @@
-#define_import_path bevy_incandescent::catalinzz::shadow_2d_types
+#define_import_path bevy_incandescent::catalinzz::types
 
 struct ShadowMapMeta {
     index: u32,
