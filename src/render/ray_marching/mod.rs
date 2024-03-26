@@ -8,15 +8,14 @@ use bevy::{
         schedule::IntoSystemConfigs,
         system::{Commands, Query, Res, ResMut, Resource},
     },
-    math::{UVec2, UVec3, Vec2},
+    math::{UVec2, UVec3, Vec4Swizzles},
     render::{
         extract_resource::ExtractResourcePlugin,
         render_graph::RenderGraphApp,
         render_resource::{
-            AddressMode, BindingResource, DynamicUniformBuffer, Extent3d, FilterMode,
-            SamplerDescriptor, Shader, ShaderType, TextureAspect, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
-            TextureViewDimension,
+            BindingResource, DynamicUniformBuffer, Extent3d, SamplerDescriptor, Shader, ShaderType,
+            TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            TextureViewDescriptor, TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::{BevyDefault, ColorAttachment, GpuImage, TextureCache},
@@ -143,18 +142,14 @@ pub fn prepare(
     gpu_meta_buffers.clear();
 
     for (main_view_entity, extracted_view) in &main_view_query {
-        let sdf_tex_size =
-            (2. / Vec2::new(
-                extracted_view.projection.x_axis[0],
-                extracted_view.projection.y_axis[1],
-            ) * ray_marching_config.scale)
-                .as_uvec2();
+        let sdf_tex_size = extracted_view.viewport.zw();
         sdf_texture_storage.try_add_main_view(main_view_entity, sdf_tex_size, &render_device);
 
         let offset = gpu_meta_buffers.add_sdf_meta(SdfMeta {
             size: sdf_tex_size,
             alpha_threshold: ray_marching_config.alpha_threshold,
             edge_lighting: ray_marching_config.edge_lighting,
+            hardness: ray_marching_config.hardness,
         });
 
         let main_view_texture = texture_cache.get(
@@ -247,25 +242,12 @@ impl SdfTexture {
             format: Some(texture.format()),
             dimension: Some(TextureViewDimension::D2),
             aspect: TextureAspect::All,
-            base_mip_level: 0,
-            mip_level_count: None,
-            base_array_layer: 0,
-            array_layer_count: None,
+            ..Default::default()
         });
 
         let sampler = render_device.create_sampler(&SamplerDescriptor {
             label: Some("sdf_texture_sampler"),
-            address_mode_u: AddressMode::ClampToEdge,
-            address_mode_v: AddressMode::ClampToEdge,
-            address_mode_w: AddressMode::ClampToEdge,
-            mag_filter: FilterMode::Nearest,
-            min_filter: FilterMode::Nearest,
-            mipmap_filter: FilterMode::Nearest,
-            lod_min_clamp: 0.,
-            lod_max_clamp: f32::MAX,
-            compare: None,
-            anisotropy_clamp: 1,
-            border_color: None,
+            ..Default::default()
         });
 
         GpuImage {
@@ -313,6 +295,7 @@ pub struct SdfMeta {
     pub size: UVec2,
     pub alpha_threshold: f32,
     pub edge_lighting: f32,
+    pub hardness: f32,
 }
 
 #[derive(Resource, Default)]

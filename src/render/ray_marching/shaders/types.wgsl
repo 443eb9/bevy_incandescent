@@ -4,4 +4,5 @@ struct SdfMeta {
     size: vec2u,
     alpha_threshold: f32,
     edge_lighting: f32,
+    hardness: f32,
 }

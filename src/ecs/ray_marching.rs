@@ -10,6 +10,7 @@ pub struct RayMarchingConfig {
     pub scale: f32,
     pub alpha_threshold: f32,
     pub edge_lighting: f32,
+    pub hardness: f32,
 }
 
 impl Default for RayMarchingConfig {
@@ -18,6 +19,7 @@ impl Default for RayMarchingConfig {
             scale: 1.,
             alpha_threshold: 0.9,
             edge_lighting: 5.,
+            hardness: 16.,
         }
     }
 }
