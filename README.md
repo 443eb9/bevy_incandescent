@@ -28,7 +28,7 @@ A 2d lighting crate for bevy. Currently wip.
 | `debug`         | Show some debug info like light ranges.                                                                                                            |
 | `catalinzz`     | Render shadow using the approach from Catalin ZZ.                                                                                                  |
 | `compatibility` | Prefer compatibility to performance as this crate uses things that are not supported by every platform including textures with `Rg32Float` format. |
-| `sdf`           | Render shadow using SDF+Raymarching.                                                                                                               |
+| `ray_marching`  | Render shadow using SDF+Raymarching.                                                                                                               |
 
 ## Render Graph
 
